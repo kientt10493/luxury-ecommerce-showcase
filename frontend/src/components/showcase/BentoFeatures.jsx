@@ -29,33 +29,38 @@ export default function BentoFeatures({
     ? specEntries.slice(0, 3).map(([key, val]) => `${key}: ${val}`)
     : ['Precision Engineered', 'Apple Quality Standard', 'Tested & Certified'];
 
+  const [dragOverIndex, setDragOverIndex] = React.useState(null);
+
   const renderCardToolbar = (index) => {
     if (!isEditMode) return null;
     return (
       <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10 text-[11px] text-[#86868b] w-full">
-        <div className="flex items-center gap-1 font-semibold text-[#2997ff]">
-          <GripVertical className="w-3.5 h-3.5 cursor-grab" />
-          <span>Kéo thẻ #{index + 1}</span>
+        <div 
+          className="flex items-center gap-1.5 font-semibold text-[#2997ff] bg-black/40 px-2.5 py-1 rounded-full border border-white/10 cursor-grab active:cursor-grabbing"
+          title="Kéo thả thẻ này sang thẻ khác để đổi vị trí"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+          <span>⠿ Kéo thẻ #{index + 1}</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {index > 0 && (
             <button
               type="button"
               onClick={() => onReorderFeatures?.(index, index - 1)}
-              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-colors cursor-pointer text-[10px]"
-              title="Đổi chỗ với thẻ trước"
+              className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
+              title="Đổi vị trí sang trước"
             >
-              ◀ Đổi vị trí
+              <span>◀ Dời sang trước</span>
             </button>
           )}
           {index < 3 && (
             <button
               type="button"
               onClick={() => onReorderFeatures?.(index, index + 1)}
-              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-colors cursor-pointer text-[10px]"
-              title="Đổi chỗ với thẻ sau"
+              className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
+              title="Đổi vị trí sang sau"
             >
-              Đổi vị trí ▶
+              <span>Dời sang sau ▶</span>
             </button>
           )}
         </div>
@@ -66,14 +71,25 @@ export default function BentoFeatures({
   const makeDragProps = (index) => ({
     draggable: isEditMode,
     onDragStart: (e) => {
+      // Don't drag card if user is selecting or editing text inside an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        e.preventDefault();
+        return;
+      }
       e.dataTransfer.setData('text/plain', String(index));
     },
     onDragOver: (e) => {
-      if (isEditMode) e.preventDefault();
+      if (!isEditMode) return;
+      e.preventDefault();
+      setDragOverIndex(index);
+    },
+    onDragLeave: () => {
+      if (dragOverIndex === index) setDragOverIndex(null);
     },
     onDrop: (e) => {
       if (!isEditMode) return;
       e.preventDefault();
+      setDragOverIndex(null);
       const src = Number(e.dataTransfer.getData('text/plain'));
       if (!isNaN(src) && src !== index) {
         onReorderFeatures?.(src, index);
@@ -105,7 +121,11 @@ export default function BentoFeatures({
           <div 
             {...makeDragProps(0)}
             className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 group shadow-xl ${
-              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+              dragOverIndex === 0
+                ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : isEditMode
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                : 'border-[#2d2d30]'
             }`}
           >
             {renderCardToolbar(0)}
@@ -155,7 +175,11 @@ export default function BentoFeatures({
           <div 
             {...makeDragProps(1)}
             className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
-              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+              dragOverIndex === 1
+                ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : isEditMode
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                : 'border-[#2d2d30]'
             }`}
           >
             {renderCardToolbar(1)}
@@ -190,7 +214,11 @@ export default function BentoFeatures({
           <div 
             {...makeDragProps(2)}
             className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
-              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+              dragOverIndex === 2
+                ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : isEditMode
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                : 'border-[#2d2d30]'
             }`}
           >
             {renderCardToolbar(2)}
@@ -225,7 +253,11 @@ export default function BentoFeatures({
           <div 
             {...makeDragProps(3)}
             className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
-              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+              dragOverIndex === 3
+                ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : isEditMode
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                : 'border-[#2d2d30]'
             }`}
           >
             {renderCardToolbar(3)}

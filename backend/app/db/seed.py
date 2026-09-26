@@ -19,6 +19,11 @@ def seed_data():
 
         # 2. Seed Flagship Product 1: Aura Vision Pro Max (Spatial Headset)
         p1 = db.query(Product).filter_by(slug="aura-vision-pro").first()
+        if p1 and len(p1.variants) < 3:
+            db.delete(p1)
+            db.commit()
+            p1 = None
+
         if not p1:
             p1 = Product(
                 slug="aura-vision-pro",

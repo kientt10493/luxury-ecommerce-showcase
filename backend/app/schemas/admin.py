@@ -7,7 +7,7 @@ class TranslationCreate(BaseModel):
     tagline: str = ""
     description: str = ""
     features: List[str] = []
-    specifications: Dict[str, str] = {}
+    specifications: Dict[str, Any] = {}
 
 class PriceCreate(BaseModel):
     currency: str  # USD, VND, SAR

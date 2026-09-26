@@ -19,7 +19,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 from app.api.v1 import products, auth, admin, payments, orders, webhooks
+
+# Static uploads directory
+uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+app.mount(f"{settings.API_V1_STR}/uploads", StaticFiles(directory=uploads_dir), name="api_uploads")
 
 # Include Routers
 app.include_router(products.router, prefix=settings.API_V1_STR)

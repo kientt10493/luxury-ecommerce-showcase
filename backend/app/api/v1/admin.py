@@ -1,5 +1,8 @@
+import uuid
+import shutil
+import os
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, UploadFile, File
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from app.core.config import settings
@@ -157,6 +160,8 @@ def create_product(
 
     db.commit()
     db.refresh(prod)
+    return {"id": prod.id, "message": "Product created successfully"}
+
 @router.get("/products/{product_id}")
 def get_admin_product_detail(
     product_id: int,
@@ -172,14 +177,15 @@ def get_admin_product_detail(
             "name": t.name,
             "tagline": t.tagline or "",
             "description": t.description or "",
-            "features": "\n".join(t.features) if isinstance(t.features, list) else (t.features or "")
+            "features": "\n".join(t.features) if isinstance(t.features, list) else (t.features or ""),
+            "specifications": t.specifications or {}
         }
         for t in prod.translations
     }
 
     for lang in ["en", "vi", "ar"]:
         if lang not in translations_data:
-            translations_data[lang] = {"name": "", "tagline": "", "description": "", "features": ""}
+            translations_data[lang] = {"name": "", "tagline": "", "description": "", "features": "", "specifications": {}}
 
     first_variant = prod.variants[0] if prod.variants else None
     price_usd = 0.0
@@ -194,12 +200,35 @@ def get_admin_product_detail(
             elif p.currency == "SAR":
                 price_sar = float(p.price)
 
+    all_variants_data = []
+    for v in prod.variants:
+        all_variants_data.append({
+            "id": v.id,
+            "sku": v.sku,
+            "attributes": v.attributes or {},
+            "attribute_translations": v.attribute_translations or {},
+            "stock_quantity": v.stock_quantity,
+            "variant_image": v.variant_image,
+            "is_active": v.is_active,
+            "prices": [
+                {
+                    "currency": p.currency,
+                    "price": float(p.price),
+                    "compare_at_price": float(p.compare_at_price) if p.compare_at_price else None
+                }
+                for p in v.prices
+            ]
+        })
+
+    root_specs = prod.translations[0].specifications if (prod.translations and prod.translations[0].specifications) else {}
+
     return {
         "id": prod.id,
         "slug": prod.slug,
         "images": prod.images or [],
         "is_featured": prod.is_featured,
         "translations": translations_data,
+        "specifications": root_specs,
         "variant": {
             "sku": first_variant.sku if first_variant else "",
             "color": (first_variant.attributes or {}).get("color", "") if first_variant else "",
@@ -208,7 +237,31 @@ def get_admin_product_detail(
             "price_usd": price_usd,
             "price_vnd": price_vnd,
             "price_sar": price_sar,
-        }
+        },
+        "variants": all_variants_data
+    }
+
+@router.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    admin: AdminUser = Depends(get_current_admin)
+):
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]:
+        ext = ".png"
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    uploads_dir = os.path.join(base_dir, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+    file_path = os.path.join(uploads_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "url": f"/uploads/{filename}",
+        "filename": filename
     }
 
 @router.put("/products/{product_id}")

@@ -39,7 +39,7 @@ class ProductDetailSchema(BaseModel):
     tagline: str
     description: str
     features: List[str]
-    specifications: Dict[str, str]
+    specifications: Dict[str, Any] = {}
     currency: str
     price: float
     compare_at_price: Optional[float] = None

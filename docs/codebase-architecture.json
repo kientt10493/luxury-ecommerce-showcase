@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Kiến trúc Codebase - Luxury E-Commerce Showcase",
+    "output": "codebase-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1260, 560],
+    "views": [
+      {
+        "id": "full-flow",
+        "label": "Luồng tương tác chính",
+        "focus": ["client", "frontend", "gateway", "routers", "database"],
+        "note": "Theo dõi request người dùng từ giao diện SPA qua API Gateway đến cơ sở dữ liệu."
+      },
+      {
+        "id": "auth-flow",
+        "label": "Xác thực & phân quyền",
+        "focus": ["frontend", "gateway", "auth"],
+        "note": "Cơ chế bảo vệ định tuyến và xác thực quản trị viên qua JWT Bearer token."
+      },
+      {
+        "id": "payment-flow",
+        "label": "Tích hợp thanh toán",
+        "focus": ["routers", "payments", "ext_gateway"],
+        "note": "Quy trình kết nối cổng thanh toán ngoài Stripe và VietQR PayOS."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Trình duyệt người dùng",
+      "sublabel": "Storefront & Admin UI",
+      "pos": [40, 260],
+      "size": [140, 64]
+    },
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "React 18 SPA",
+      "sublabel": "Vite + TailwindCSS",
+      "tag": "Port :5173",
+      "brand": "react",
+      "pos": [280, 260],
+      "size": [150, 64]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Module Xác thực",
+      "sublabel": "OAuth2 Password + JWT",
+      "tag": "core/security.py",
+      "pos": [530, 110],
+      "size": [160, 64]
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "FastAPI Core App",
+      "sublabel": "CORS & Middleware",
+      "tag": "Port :8000",
+      "brand": "fastapi",
+      "pos": [530, 260],
+      "size": [160, 64]
+    },
+    {
+      "id": "routers",
+      "type": "backend",
+      "label": "API Controllers (v1)",
+      "sublabel": "Products, Orders, Admin",
+      "tag": "app/api/v1/*",
+      "pos": [790, 260],
+      "size": [160, 64]
+    },
+    {
+      "id": "payments",
+      "type": "backend",
+      "label": "Payment Service",
+      "sublabel": "Stripe & PayOS Client",
+      "tag": "payment_service.py",
+      "pos": [790, 410],
+      "size": [160, 64]
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "SQLite Database",
+      "sublabel": "SQLAlchemy (showcase.db)",
+      "brand": "sqlite",
+      "pos": [1050, 260],
+      "size": [150, 64]
+    },
+    {
+      "id": "ext_gateway",
+      "type": "external",
+      "label": "Stripe & VietQR API",
+      "sublabel": "Sandbox & Live Gateway",
+      "brand": "stripe",
+      "pos": [1050, 410],
+      "size": [150, 64]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Backend Application Layer (FastAPI)",
+      "wraps": ["auth", "gateway", "routers", "payments"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-client-frontend",
+      "from": "client",
+      "to": "frontend",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-frontend-gateway",
+      "from": "frontend",
+      "to": "gateway",
+      "label": "REST API",
+      "variant": "emphasis"
+    },
+    {
+      "id": "conn-gateway-auth",
+      "from": "gateway",
+      "to": "auth",
+      "label": "Xác thực JWT",
+      "variant": "security"
+    },
+    {
+      "id": "conn-gateway-routers",
+      "from": "gateway",
+      "to": "routers",
+      "label": "Điều phối API"
+    },
+    {
+      "id": "conn-routers-payments",
+      "from": "routers",
+      "to": "payments",
+      "label": "Xử lý checkout",
+      "labelDy": 24
+    },
+    {
+      "id": "conn-routers-db",
+      "from": "routers",
+      "to": "database",
+      "label": "SQLAlchemy ORM"
+    },
+    {
+      "id": "conn-payments-external",
+      "from": "payments",
+      "to": "ext_gateway",
+      "label": "Gọi cổng API",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Frontend Client",
+      "items": [
+        "React 18 SPA xây dựng bằng Vite và TailwindCSS",
+        "Storefront tương tác cao: xem danh mục, lọc giá, giỏ hàng, đa ngôn ngữ & tiền tệ",
+        "Admin Dashboard quản lý sản phẩm, đơn hàng và cấu hình hệ thống"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Backend Services (FastAPI)",
+      "items": [
+        "FastAPI Server điều hướng API v1, tích hợp middleware CORS và tự động sinh Swagger docs",
+        "Hệ thống module hóa rõ ràng: Controllers (api/v1), Data Models, Core Config & Security",
+        "Payment Service hỗ trợ đa kênh thanh toán (Stripe, MoMo, VietQR PayOS)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Bảo mật & Dữ liệu",
+      "items": [
+        "Cơ chế bảo mật JWT Bearer token và OAuth2 Password flow cho tài khoản quản trị",
+        "Cơ sở dữ liệu SQLite cục bộ được quản lý thông qua SQLAlchemy ORM với tự động seed dữ liệu mẫu"
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@ export default function HeroShowcase({
   isEditMode = false,
   onUpdateField,
   onUpdateImage,
+  onUpdateImageFile,
   onUpdateBadge
 }) {
   const { t, isRTL } = useLanguage();
@@ -136,14 +137,31 @@ export default function HeroShowcase({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  onUpdateImage?.(event.target.result);
-                };
-                reader.readAsDataURL(file);
+                if (onUpdateImageFile) {
+                  onUpdateImageFile(file);
+                } else {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    onUpdateImage?.(event.target.result);
+                  };
+                  reader.readAsDataURL(file);
+                }
               }
             }}
           />
+
+          {/* In Edit Mode: Persistent Quick Upload Button at top-right */}
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute top-8 right-4 z-20 px-3.5 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xl transition-all cursor-pointer ring-2 ring-black/80 apple-animate-in"
+              title="Nhấn để tải ảnh sản phẩm mới từ máy tính"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>📸 Tải Ảnh Mới</span>
+            </button>
+          )}
 
           {/* Floor reflection effect & Dropzone */}
           <div 
@@ -159,11 +177,15 @@ export default function HeroShowcase({
               setIsDragOver(false);
               const file = e.dataTransfer.files?.[0];
               if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  onUpdateImage?.(event.target.result);
-                };
-                reader.readAsDataURL(file);
+                if (onUpdateImageFile) {
+                  onUpdateImageFile(file);
+                } else {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    onUpdateImage?.(event.target.result);
+                  };
+                  reader.readAsDataURL(file);
+                }
               }
             }}
             className={`relative w-full aspect-[16/10] max-h-[520px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#111113] to-[#050505] border transition-all p-4 sm:p-8 flex items-center justify-center shadow-2xl group ${
@@ -182,7 +204,7 @@ export default function HeroShowcase({
 
             {/* In Edit Mode: Upload Button Overlay */}
             {isEditMode && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -192,7 +214,7 @@ export default function HeroShowcase({
                   <span>Tải ảnh từ máy tính (hoặc Kéo Thả File vào đây)</span>
                 </button>
                 <span className="text-[11px] text-[#a1a1a6]">
-                  Hỗ trợ PNG, JPG, WebP với độ phân giải cao
+                  Hỗ trợ PNG, JPG, WebP độ phân giải cao
                 </span>
               </div>
             )}
