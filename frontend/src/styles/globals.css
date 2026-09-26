@@ -1,136 +1,145 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
 
 :root {
-  --bg-primary: #07090e;
-  --bg-secondary: #0d121d;
-  --bg-card: rgba(18, 24, 38, 0.7);
-  --bg-glass: rgba(255, 255, 255, 0.03);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(56, 189, 248, 0.35);
+  --apple-black: #000000;
+  --apple-dark-bg: #0b0b0c;
+  --apple-card: #161617;
+  --apple-card-hover: #1c1c1e;
+  --apple-border: rgba(255, 255, 255, 0.12);
+  --apple-border-subtle: rgba(255, 255, 255, 0.08);
   
-  --accent-cyan: #38bdf8;
-  --accent-blue: #2563eb;
-  --accent-gold: #f59e0b;
-  --accent-emerald: #10b981;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --apple-blue: #0071e3;
+  --apple-blue-hover: #0077ed;
+  --apple-blue-text: #2997ff;
   
-  --font-family-base: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-arabic: 'Cairo', 'Tajawal', sans-serif;
+  --apple-text: #f5f5f7;
+  --apple-text-muted: #86868b;
+  --apple-text-dim: #6e6e73;
+  
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+  --font-arabic: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 [dir="rtl"] {
-  --font-family-base: var(--font-family-arabic);
+  --font-apple: var(--font-arabic);
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html, body {
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  font-family: var(--font-family-base);
+  background-color: var(--apple-black);
+  color: var(--apple-text);
+  font-family: var(--font-apple);
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Classes */
-.glass-panel {
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+/* Apple Navigation Glass */
+.apple-nav-glass {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--apple-border-subtle);
 }
 
-.glass-nav {
-  background: rgba(7, 9, 14, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border-subtle);
+/* Apple Subnav Glass */
+.apple-subnav-glass {
+  background: rgba(22, 22, 23, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--apple-border-subtle);
 }
 
-.glow-cyan {
-  box-shadow: 0 0 35px rgba(56, 189, 248, 0.25);
-}
-
-.glow-card {
+/* Apple Card Aesthetic */
+.apple-card {
+  background-color: var(--apple-card);
+  border: 1px solid var(--apple-border-subtle);
+  border-radius: 28px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.glow-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.15);
-  transform: translateY(-2px);
+
+.apple-card:hover {
+  background-color: var(--apple-card-hover);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Luxury Gradient Text */
-.gradient-text-cyan {
-  background: linear-gradient(135deg, #ffffff 20%, #38bdf8 70%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Apple Buttons */
+.apple-btn-blue {
+  background-color: var(--apple-blue);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+.apple-btn-blue:hover {
+  background-color: var(--apple-blue-hover);
+}
+.apple-btn-blue:active {
+  transform: scale(0.98);
 }
 
-.gradient-text-gold {
-  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 60%, #b45309 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.apple-btn-secondary {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.apple-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
-/* RTL Helpers */
-[dir="rtl"] .rtl-flip {
-  transform: scaleX(-1);
+.apple-link {
+  color: var(--apple-blue-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.2s ease;
+}
+.apple-link:hover {
+  text-decoration: underline;
 }
 
-/* Animated subtle grid background */
-.bg-grid {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* Custom Scrollbar */
+/* Custom Scrollbar (minimal Apple style) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #07090e;
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: #2c2c2e;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #3a3a3c;
 }
 
-/* Modal animation */
-@keyframes modalEnter {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+/* Typography Helpers */
+.apple-headline {
+  letter-spacing: -0.025em;
+  font-weight: 700;
 }
 
-.animate-modal {
-  animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.apple-subheadline {
+  letter-spacing: -0.015em;
+  color: var(--apple-text-muted);
 }
 
-/* Pulse badge */
-@keyframes subtlePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+/* Animations */
+@keyframes appleFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.animate-pulse-subtle {
-  animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+.apple-animate-in {
+  animation: appleFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

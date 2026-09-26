@@ -9,11 +9,11 @@ import BentoFeatures from '../components/showcase/BentoFeatures';
 import TechSpecs from '../components/showcase/TechSpecs';
 import QuickBuyModal from '../components/checkout/QuickBuyModal';
 import VietQRModal from '../components/checkout/VietQRModal';
-import { Sparkles, Loader2, ShieldCheck, Heart } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { language, t } = useLanguage();
-  const { currency } = useCurrency();
+  const { currency, formatPrice } = useCurrency();
 
   const [products, setProducts] = useState([]);
   const [activeProduct, setActiveProduct] = useState(null);
@@ -26,15 +26,14 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [checkoutVariant, setCheckoutVariant] = useState(null);
   const [vietQRData, setVietQRData] = useState(null);
 
-  // Load products when language or currency changes
   useEffect(() => {
     setLoading(true);
     productApi.getProducts(language, currency)
       .then((res) => {
         setProducts(res.data);
         if (res.data.length > 0) {
-          const firstSlug = res.data[0].slug;
-          return productApi.getProductDetail(firstSlug, language, currency);
+          const currentId = activeProduct?.id || res.data[0].id;
+          return productApi.getProductDetail(currentId, language, currency);
         }
       })
       .then((detailRes) => {
@@ -52,6 +51,19 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       });
   }, [language, currency]);
 
+  const handleSelectProduct = (prod) => {
+    setLoading(true);
+    productApi.getProductDetail(prod.id, language, currency)
+      .then((res) => {
+        setActiveProduct(res.data);
+        if (res.data.variants && res.data.variants.length > 0) {
+          setSelectedVariant(res.data.variants[0]);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
   const handleOpenQuickBuy = (productToBuy = null, variantToBuy = null) => {
     const prod = productToBuy || activeProduct;
     const v = variantToBuy || selectedVariant || (prod?.variants?.[0]);
@@ -66,10 +78,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-white selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-black text-[#f5f5f7]">
       
-      {/* Navigation */}
+      {/* Apple Double Navigation (Global 44px + Subnav 52px) */}
       <Navbar
+        productName={activeProduct?.name || "Aura Vision Pro"}
+        productPrice={activeProduct ? formatPrice(activeProduct.price) : ""}
         onOpenQuickBuy={() => handleOpenQuickBuy()}
         onNavigateAdmin={onNavigateAdmin}
         onNavigateHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -77,10 +91,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       />
 
       {loading && !activeProduct ? (
-        <div className="h-[70vh] flex flex-col items-center justify-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-          <span className="text-xs uppercase tracking-widest text-slate-400 font-mono">
-            Calibrating Luxury Showcase...
+        <div className="h-[75vh] flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-7 h-7 animate-spin text-[#0071e3]" />
+          <span className="text-xs text-[#86868b] tracking-wider">
+            Loading {t('nav.brand')} Storefront...
           </span>
         </div>
       ) : (
@@ -88,11 +102,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           {/* Hero Section */}
           <HeroShowcase
             product={activeProduct}
-            onSelectProduct={setActiveProduct}
+            allProducts={products}
+            onSelectProduct={handleSelectProduct}
             onQuickBuy={(p) => handleOpenQuickBuy(p)}
           />
 
-          {/* Catalog & Variant Configurator Section */}
+          {/* Apple Store Configurator Section */}
           {activeProduct && (
             <VariantPicker
               product={activeProduct}
@@ -102,27 +117,38 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             />
           )}
 
-          {/* Bento Grid Innovation Highlights */}
+          {/* Apple Bento Highlights */}
           <BentoFeatures />
 
-          {/* Tabbed Tech Specifications Table */}
+          {/* Apple Tech Specs */}
           {activeProduct && (
             <TechSpecs product={activeProduct} />
           )}
         </main>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-4 lg:px-8 text-center text-xs text-slate-500 space-y-4 bg-black/40">
-        <div className="flex items-center justify-center gap-2 text-slate-300 font-bold tracking-widest">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          <span>AURA GLOBAL SHOWCASE</span>
-        </div>
-        <p className="max-w-md mx-auto text-slate-400 font-light">
-          Engineered for international clientele across the United States, Vietnam, and the Middle East. Real-time fixed pricing in USD, VND, and SAR.
-        </p>
-        <div className="text-[11px] text-slate-600 font-mono">
-          © 2026 AURA Inc. All Rights Reserved. Compliant with Stripe & Napas 24/7 VietQR.
+      {/* Apple Iconic Footer */}
+      <footer className="border-t border-[#1d1d1f] bg-[#0b0b0c] py-12 px-4 sm:px-6 lg:px-8 text-xs text-[#6e6e73]">
+        <div className="max-w-5xl mx-auto space-y-4">
+          <p className="border-b border-[#1d1d1f] pb-4 leading-relaxed font-light">
+            1. Trade‑in values will vary based on the condition, year, and configuration of your eligible trade‑in device. Not all devices are eligible for credit. Prices quoted are inclusive of local taxes where applicable.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+            <div>
+              Copyright © 2026 AURA Inc. All rights reserved.
+            </div>
+
+            <div className="flex items-center gap-4 text-[#86868b]">
+              <a href="#" className="hover:underline">Privacy Policy</a>
+              <span>|</span>
+              <a href="#" className="hover:underline">Terms of Use</a>
+              <span>|</span>
+              <a href="#" className="hover:underline">Sales Policy</a>
+              <span>|</span>
+              <a href="#" className="hover:underline">Legal</a>
+            </div>
+          </div>
         </div>
       </footer>
 
