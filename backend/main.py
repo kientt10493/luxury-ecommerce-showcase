@@ -19,8 +19,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api.v1 import products, auth, admin
+
 # Include Routers
 app.include_router(products.router, prefix=settings.API_V1_STR)
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
