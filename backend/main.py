@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.seed import seed_data
+from app.api.v1 import products
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -17,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Routers
+app.include_router(products.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
