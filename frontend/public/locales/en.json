@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "brand": "AURA",
+    "tagline": "LUXURY SPATIAL",
+    "products": "Products",
+    "features": "Innovations",
+    "specs": "Specifications",
+    "admin": "Admin Portal",
+    "quick_buy": "Quick Buy"
+  },
+  "hero": {
+    "eyebrow": "NEXT-GEN FLAGSHIP",
+    "starting_at": "Starting at",
+    "buy_now": "Buy Now",
+    "explore_specs": "Explore Specs",
+    "free_shipping": "Complimentary Worldwide Express Shipping",
+    "warranty": "2-Year Luxury Warranty Included"
+  },
+  "variant": {
+    "color": "Color",
+    "edition": "Edition / Storage",
+    "in_stock": "In Stock — Ships within 24 hours",
+    "low_stock": "Only {{count}} remaining",
+    "out_of_stock": "Sold Out"
+  },
+  "bento": {
+    "badge": "PIONEERING ARCHITECTURE",
+    "title": "Crafted with Precision. Born for the Future.",
+    "subtitle": "Every curve, micro-sensor, and optical lens is meticulously engineered for total sensory perfection."
+  },
+  "specs": {
+    "title": "Technical Specifications",
+    "subtitle": "Detailed hardware metrics and aerospace composition."
+  },
+  "checkout": {
+    "title": "Direct Luxury Checkout",
+    "subtitle": "Enter your delivery details and choose your preferred gateway.",
+    "customer_name": "Full Name",
+    "customer_email": "Email Address",
+    "customer_phone": "Phone Number",
+    "shipping_address": "Delivery Address (City, Country)",
+    "pay_international": "Credit / Debit Card (Stripe)",
+    "pay_vietnam": "Bank Transfer QR (VietQR / Napas 24/7)",
+    "total_due": "Total Due",
+    "submit_payment": "Proceed to Payment",
+    "processing": "Processing your order...",
+    "cancel": "Cancel",
+    "secure_badge": "256-bit Bank Grade Encrypted Transaction"
+  },
+  "vietqr": {
+    "title": "Scan to Pay via VietQR",
+    "instruction": "Open any Vietnamese Banking App (VCB, TCB, MB, MoMo...) and scan the dynamic QR code below.",
+    "bank": "Bank",
+    "account": "Account Number",
+    "receiver": "Receiver",
+    "amount": "Exact Amount",
+    "memo": "Transfer Memo",
+    "expires_in": "Code expires in",
+    "waiting": "Listening for bank transfer confirmation...",
+    "sim_button": "Simulate Successful Bank Transfer (Demo)",
+    "close": "Close"
+  },
+  "success": {
+    "title": "Payment Confirmed!",
+    "subtitle": "Thank you for your acquisition. Your order has been registered in our luxury vault.",
+    "order_id": "Order Number",
+    "amount_paid": "Total Paid",
+    "status": "PAID",
+    "continue_shopping": "Return to Showcase",
+    "support": "A concierge confirmation receipt has been dispatched to your email."
+  },
+  "admin": {
+    "title": "Showcase Administration",
+    "login_title": "Sign in to Admin Dashboard",
+    "username": "Username",
+    "password": "Password",
+    "login_button": "Sign In",
+    "logout": "Sign Out",
+    "metrics_revenue": "Total Revenue",
+    "metrics_orders": "Total Orders",
+    "metrics_paid": "Paid Orders",
+    "metrics_stock": "Active Inventory",
+    "products_tab": "Products & Translations",
+    "orders_tab": "Live Order Log",
+    "add_product": "+ New Product",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save Changes",
+    "cancel": "Cancel"
+  }
+}

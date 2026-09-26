@@ -1,0 +1,91 @@
+{
+  "nav": {
+    "brand": "AURA",
+    "tagline": "ĐIỆN TOÁN KHÔNG GIAN CAO CẤP",
+    "products": "Sản phẩm",
+    "features": "Đột phá",
+    "specs": "Thông số",
+    "admin": "Quản trị",
+    "quick_buy": "Mua ngay"
+  },
+  "hero": {
+    "eyebrow": "SIÊU PHẨM THẾ HỆ MỚI",
+    "starting_at": "Giá chỉ từ",
+    "buy_now": "Mua ngay",
+    "explore_specs": "Xem thông số",
+    "free_shipping": "Miễn phí vận chuyển hỏa tốc toàn quốc",
+    "warranty": "Bảo hành đặc quyền 2 năm chính hãng"
+  },
+  "variant": {
+    "color": "Màu sắc",
+    "edition": "Phiên bản / Dung lượng",
+    "in_stock": "Còn hàng — Giao ngay trong 24 giờ",
+    "low_stock": "Chỉ còn {{count}} sản phẩm",
+    "out_of_stock": "Tạm hết hàng"
+  },
+  "bento": {
+    "badge": "KIẾN TRÚC TIÊN PHONG",
+    "title": "Chế tác tinh xảo. Định hình tương lai.",
+    "subtitle": "Từng đường cong, cảm biến vi mô và hệ quang học được hoàn thiện tỉ mỉ mang lại trải nghiệm cảm quan hoàn mỹ."
+  },
+  "specs": {
+    "title": "Thông số kỹ thuật chi tiết",
+    "subtitle": "Bảng cấu hình phần cứng và chất liệu hợp kim hàng không."
+  },
+  "checkout": {
+    "title": "Thanh toán Đặt hàng Nhanh",
+    "subtitle": "Điền thông tin giao nhận và chọn phương thức thanh toán bảo mật.",
+    "customer_name": "Họ và tên người nhận",
+    "customer_email": "Địa chỉ Email",
+    "customer_phone": "Số điện thoại liên hệ",
+    "shipping_address": "Địa chỉ giao hàng (Số nhà, Đường, Quận/Huyện, Tỉnh/TP)",
+    "pay_international": "Thẻ tín dụng Quốc tế (Visa / MasterCard qua Stripe)",
+    "pay_vietnam": "Chuyển khoản Ngân hàng (Quét mã VietQR 24/7 qua PayOS)",
+    "total_due": "Tổng thanh toán",
+    "submit_payment": "Tiến hành Thanh toán",
+    "processing": "Đang khởi tạo đơn hàng...",
+    "cancel": "Quay lại",
+    "secure_badge": "Giao dịch mã hóa an toàn chuẩn ngân hàng 256-bit"
+  },
+  "vietqr": {
+    "title": "Quét mã VietQR để thanh toán",
+    "instruction": "Mở App Ngân hàng bất kỳ (Vietcombank, Techcombank, MB, Momo...) và quét mã QR bên dưới.",
+    "bank": "Ngân hàng nhận",
+    "account": "Số tài khoản",
+    "receiver": "Chủ tài khoản",
+    "amount": "Số tiền chính xác",
+    "memo": "Nội dung chuyển khoản",
+    "expires_in": "Mã hết hiệu lực sau",
+    "waiting": "Hệ thống đang tự động lắng nghe giao dịch chuyển khoản...",
+    "sim_button": "Giả lập Thanh toán Thành công (Dành cho Demo)",
+    "close": "Đóng"
+  },
+  "success": {
+    "title": "Thanh toán Thành công!",
+    "subtitle": "Cảm ơn bạn đã sở hữu kiệt tác công nghệ AURA. Đơn hàng đã được lưu trữ an toàn trong hệ thống.",
+    "order_id": "Mã đơn hàng",
+    "amount_paid": "Số tiền đã thanh toán",
+    "status": "ĐÃ THANH TOÁN",
+    "continue_shopping": "Quay lại trang sản phẩm",
+    "support": "Hóa đơn điện tử và thông tin vận đơn đã được gửi tới email của bạn."
+  },
+  "admin": {
+    "title": "Hệ thống Quản trị Showcase",
+    "login_title": "Đăng nhập Trang Quản trị",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "login_button": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "metrics_revenue": "Tổng doanh thu",
+    "metrics_orders": "Tổng số đơn",
+    "metrics_paid": "Đã thanh toán",
+    "metrics_stock": "Tổng tồn kho",
+    "products_tab": "Sản phẩm & Bản dịch",
+    "orders_tab": "Nhật ký Đơn hàng",
+    "add_product": "+ Thêm sản phẩm",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "save": "Lưu thay đổi",
+    "cancel": "Hủy bỏ"
+  }
+}
