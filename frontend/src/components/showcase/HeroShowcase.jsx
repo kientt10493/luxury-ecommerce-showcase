@@ -15,7 +15,10 @@ export default function HeroShowcase({
   onUpdateImageFile,
   onUpdateBadge,
   textOffsets = {},
-  onUpdateTextOffset
+  onUpdateTextOffset,
+  blockStyles = {},
+  activeBlockId,
+  onSelectBlock
 }) {
   const { t, isRTL } = useLanguage();
   const { formatPrice } = useCurrency();
@@ -24,7 +27,7 @@ export default function HeroShowcase({
 
   if (!product) return null;
 
-  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'];
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles'];
   const displayableSpecs = Object.entries(product.specifications || {})
     .filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object')
     .map(([k, v]) => `${k}: ${v}`);
@@ -66,8 +69,18 @@ export default function HeroShowcase({
         {/* Hero Header Area (Apple Headline & Tagline Hierarchy) */}
         <div className="space-y-4 max-w-3xl mx-auto">
           
-          <div className="text-xs sm:text-sm font-semibold tracking-wider text-[#ff9f0a] uppercase">
-            {t('hero.eyebrow')}
+          <div>
+            <EditableText
+              id="hero-eyebrow"
+              value={t('hero.eyebrow')}
+              isEditing={isEditMode}
+              blockStyle={blockStyles?.['hero-eyebrow']}
+              isSelected={activeBlockId === 'hero-eyebrow'}
+              onSelectBlock={onSelectBlock}
+              offset={textOffsets?.['hero-eyebrow']}
+              onOffsetChange={onUpdateTextOffset}
+              className="text-xs sm:text-sm font-semibold tracking-wider text-[#ff9f0a] uppercase"
+            />
           </div>
 
           <div>
@@ -75,6 +88,9 @@ export default function HeroShowcase({
               id="hero-product-name"
               value={product.name}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['hero-product-name']}
+              isSelected={activeBlockId === 'hero-product-name'}
+              onSelectBlock={onSelectBlock}
               onChange={(val) => onUpdateField?.('name', val)}
               offset={textOffsets?.['hero-product-name']}
               onOffsetChange={onUpdateTextOffset}
@@ -88,6 +104,9 @@ export default function HeroShowcase({
               id="hero-product-tagline"
               value={product.tagline}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['hero-product-tagline']}
+              isSelected={activeBlockId === 'hero-product-tagline'}
+              onSelectBlock={onSelectBlock}
               onChange={(val) => onUpdateField?.('tagline', val)}
               offset={textOffsets?.['hero-product-tagline']}
               onOffsetChange={onUpdateTextOffset}
@@ -98,9 +117,15 @@ export default function HeroShowcase({
 
           <div>
             <EditableText
+              id="hero-product-desc"
               value={product.description || ''}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['hero-product-desc']}
+              isSelected={activeBlockId === 'hero-product-desc'}
+              onSelectBlock={onSelectBlock}
               onChange={(val) => onUpdateField?.('description', val)}
+              offset={textOffsets?.['hero-product-desc']}
+              onOffsetChange={onUpdateTextOffset}
               as="p"
               multiline={true}
               placeholder="Nhấp để thêm đoạn văn giới thiệu sản phẩm..."

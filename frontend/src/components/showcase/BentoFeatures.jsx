@@ -10,14 +10,17 @@ export default function BentoFeatures({
   onUpdateField,
   onReorderFeatures,
   textOffsets = {},
-  onUpdateTextOffset
+  onUpdateTextOffset,
+  blockStyles = {},
+  activeBlockId,
+  onSelectBlock
 }) {
   const { t } = useLanguage();
 
   if (!product) return null;
 
   const features = product.features || [];
-  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'];
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles'];
   const specs = product.specifications || {};
   const specEntries = Object.entries(specs).filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object');
 
@@ -36,8 +39,9 @@ export default function BentoFeatures({
 
   const renderCardToolbar = (index) => {
     if (!isEditMode) return null;
+    const cardId = `bento-card-${index}`;
     return (
-      <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10 text-[11px] text-[#86868b] w-full">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-white/10 text-[11px] text-[#86868b] w-full">
         <div 
           className="flex items-center gap-1.5 font-semibold text-[#2997ff] bg-black/40 px-2.5 py-1 rounded-full border border-white/10 cursor-grab active:cursor-grabbing"
           title="Kéo thả thẻ này sang thẻ khác để đổi vị trí"
@@ -45,25 +49,45 @@ export default function BentoFeatures({
           <GripVertical className="w-3.5 h-3.5" />
           <span>⠿ Kéo thẻ #{index + 1}</span>
         </div>
+
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSelectBlock?.({
+              id: cardId,
+              type: 'card',
+              label: `Thẻ Bento #${index + 1}`,
+              style: blockStyles?.[cardId] || {}
+            })}
+            className={`px-2.5 py-1 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer shadow ${
+              activeBlockId === cardId
+                ? 'bg-[#0071e3] text-white ring-2 ring-white/30'
+                : 'bg-blue-500/20 hover:bg-[#0071e3] text-[#2997ff] hover:text-white'
+            }`}
+            title="Sửa nền, viền và style thẻ này bằng Canva Studio"
+          >
+            <Sparkles className="w-3 h-3 text-amber-300" />
+            <span>🎨 Sửa nền thẻ</span>
+          </button>
+
           {index > 0 && (
             <button
               type="button"
               onClick={() => onReorderFeatures?.(index, index - 1)}
-              className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
+              className="px-2 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
               title="Đổi vị trí sang trước"
             >
-              <span>◀ Dời sang trước</span>
+              <span>◀</span>
             </button>
           )}
           {index < 3 && (
             <button
               type="button"
               onClick={() => onReorderFeatures?.(index, index + 1)}
-              className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
+              className="px-2 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white transition-all cursor-pointer text-[11px] font-medium flex items-center gap-1 shadow"
               title="Đổi vị trí sang sau"
             >
-              <span>Dời sang sau ▶</span>
+              <span>▶</span>
             </button>
           )}
         </div>
@@ -100,6 +124,20 @@ export default function BentoFeatures({
     }
   });
 
+  const getCardCustomStyle = (index) => {
+    const s = blockStyles?.[`bento-card-${index}`] || {};
+    return {
+      ...(s.backgroundColor ? { backgroundColor: s.backgroundColor } : {}),
+      ...(s.background ? { background: s.background } : {}),
+      ...(s.backgroundImage ? { backgroundImage: s.backgroundImage, backgroundSize: s.backgroundSize || 'cover', backgroundPosition: s.backgroundPosition || 'center' } : {}),
+      ...(s.borderRadius ? { borderRadius: s.borderRadius } : {}),
+      ...(s.border ? { border: s.border } : {}),
+      ...(s.padding ? { padding: s.padding } : {}),
+      ...(s.boxShadow ? { boxShadow: s.boxShadow } : {}),
+      ...(s.backdropFilter ? { backdropFilter: s.backdropFilter, WebkitBackdropFilter: s.backdropFilter } : {})
+    };
+  };
+
   return (
     <section id="innovations" className="py-24 px-4 sm:px-6 lg:px-8 bg-black text-start">
       <div className="max-w-5xl mx-auto space-y-16">
@@ -114,6 +152,9 @@ export default function BentoFeatures({
               id="bento-section-title"
               value="Get the highlights."
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['bento-section-title']}
+              isSelected={activeBlockId === 'bento-section-title'}
+              onSelectBlock={onSelectBlock}
               offset={textOffsets?.['bento-section-title']}
               onOffsetChange={onUpdateTextOffset}
               as="h2"
@@ -125,6 +166,9 @@ export default function BentoFeatures({
               id="bento-section-subtitle"
               value={product.tagline || t('bento.subtitle')}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['bento-section-subtitle']}
+              isSelected={activeBlockId === 'bento-section-subtitle'}
+              onSelectBlock={onSelectBlock}
               onChange={(val) => onUpdateField?.('tagline', val)}
               offset={textOffsets?.['bento-section-subtitle']}
               onOffsetChange={onUpdateTextOffset}
@@ -140,9 +184,12 @@ export default function BentoFeatures({
           {/* Bento Card 1: Main Flagship Breakthrough (Large 8 Cols) */}
           <div 
             {...makeDragProps(0)}
+            style={getCardCustomStyle(0)}
             className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 group shadow-xl ${
               dragOverIndex === 0
                 ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : activeBlockId === 'bento-card-0'
+                ? 'ring-2 ring-[#0071e3] border-[#0071e3]'
                 : isEditMode
                 ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
                 : 'border-[#2d2d30]'
@@ -164,6 +211,9 @@ export default function BentoFeatures({
                   id="bento-card-0-title"
                   value={feature1}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.['bento-card-0-title']}
+                  isSelected={activeBlockId === 'bento-card-0-title'}
+                  onSelectBlock={onSelectBlock}
                   onChange={(val) => onUpdateFeature?.(0, val)}
                   offset={textOffsets?.['bento-card-0-title']}
                   onOffsetChange={onUpdateTextOffset}
@@ -177,6 +227,9 @@ export default function BentoFeatures({
                   id="bento-card-0-desc"
                   value={product.description || t('bento.subtitle')}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.['bento-card-0-desc']}
+                  isSelected={activeBlockId === 'bento-card-0-desc'}
+                  onSelectBlock={onSelectBlock}
                   onChange={(val) => onUpdateField?.('description', val)}
                   offset={textOffsets?.['bento-card-0-desc']}
                   onOffsetChange={onUpdateTextOffset}
@@ -200,9 +253,12 @@ export default function BentoFeatures({
           {/* Bento Card 2: Computational Silicon / Architecture (4 Cols) */}
           <div 
             {...makeDragProps(1)}
+            style={getCardCustomStyle(1)}
             className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
               dragOverIndex === 1
                 ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : activeBlockId === 'bento-card-1'
+                ? 'ring-2 ring-[#0071e3] border-[#0071e3]'
                 : isEditMode
                 ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
                 : 'border-[#2d2d30]'
@@ -220,6 +276,9 @@ export default function BentoFeatures({
                   id="bento-card-1-title"
                   value={feature2}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.['bento-card-1-title']}
+                  isSelected={activeBlockId === 'bento-card-1-title'}
+                  onSelectBlock={onSelectBlock}
                   onChange={(val) => onUpdateFeature?.(1, val)}
                   offset={textOffsets?.['bento-card-1-title']}
                   onOffsetChange={onUpdateTextOffset}
@@ -242,9 +301,12 @@ export default function BentoFeatures({
           {/* Bento Card 3: Sensory & Telemetry (4 Cols) */}
           <div 
             {...makeDragProps(2)}
+            style={getCardCustomStyle(2)}
             className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
               dragOverIndex === 2
                 ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : activeBlockId === 'bento-card-2'
+                ? 'ring-2 ring-[#0071e3] border-[#0071e3]'
                 : isEditMode
                 ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
                 : 'border-[#2d2d30]'
@@ -262,6 +324,9 @@ export default function BentoFeatures({
                   id="bento-card-2-title"
                   value={feature3}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.['bento-card-2-title']}
+                  isSelected={activeBlockId === 'bento-card-2-title'}
+                  onSelectBlock={onSelectBlock}
                   onChange={(val) => onUpdateFeature?.(2, val)}
                   offset={textOffsets?.['bento-card-2-title']}
                   onOffsetChange={onUpdateTextOffset}
@@ -284,9 +349,12 @@ export default function BentoFeatures({
           {/* Bento Card 4: Materials & Craftsmanship (Large 8 Cols) */}
           <div 
             {...makeDragProps(3)}
+            style={getCardCustomStyle(3)}
             className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
               dragOverIndex === 3
                 ? 'ring-4 ring-[#0071e3] scale-[1.01] bg-[#1c1c1f] border-[#0071e3]'
+                : activeBlockId === 'bento-card-3'
+                ? 'ring-2 ring-[#0071e3] border-[#0071e3]'
                 : isEditMode
                 ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
                 : 'border-[#2d2d30]'
@@ -304,6 +372,9 @@ export default function BentoFeatures({
                   id="bento-card-3-title"
                   value={feature4}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.['bento-card-3-title']}
+                  isSelected={activeBlockId === 'bento-card-3-title'}
+                  onSelectBlock={onSelectBlock}
                   onChange={(val) => onUpdateFeature?.(3, val)}
                   offset={textOffsets?.['bento-card-3-title']}
                   onOffsetChange={onUpdateTextOffset}

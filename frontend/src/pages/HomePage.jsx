@@ -12,7 +12,8 @@ import VietQRModal from '../components/checkout/VietQRModal';
 import LiveEditorBar from '../components/navbar/LiveEditorBar';
 import DraggableFloatingImage from '../components/common/DraggableFloatingImage';
 import CanvaOverlay from '../components/common/canva/CanvaOverlay';
-import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown, GripVertical, Trash2 } from 'lucide-react';
+import CanvaBlockInspector from '../components/common/canva/CanvaBlockInspector';
+import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown, GripVertical, Trash2, Sparkles } from 'lucide-react';
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { language, t } = useLanguage();
@@ -39,9 +40,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [draggedSectionIndex, setDraggedSectionIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
 
-  // Canva Studio visual canvas elements & text offsets state
+  // Canva Studio visual canvas elements, text offsets & block styling state
   const [canvasElements, setCanvasElements] = useState([]);
   const [textOffsets, setTextOffsets] = useState({});
+  const [blockStyles, setBlockStyles] = useState({});
+  const [activeBlock, setActiveBlock] = useState(null);
   const [isCanvaDrawerOpen, setIsCanvaDrawerOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -107,6 +110,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           } else {
             setTextOffsets({});
           }
+          if (prodData.specifications?.block_styles) {
+            setBlockStyles(prodData.specifications.block_styles);
+          } else {
+            setBlockStyles({});
+          }
         }
         setLoading(false);
       })
@@ -122,6 +130,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
   const handleSelectProduct = (prod) => {
     setActiveProductId(prod.id);
+    setActiveBlock(null);
     setHasChanges(false);
   };
 
@@ -298,12 +307,37 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setHasChanges(true);
   };
 
+  // Canva Studio block styles update handlers
+  const handleUpdateBlockStyle = (blockId, stylePatch) => {
+    setBlockStyles((prev) => ({
+      ...prev,
+      [blockId]: {
+        ...(prev[blockId] || {}),
+        ...stylePatch
+      }
+    }));
+    setHasChanges(true);
+  };
+
+  const handleResetBlockStyle = (blockId) => {
+    setBlockStyles((prev) => {
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
+    setHasChanges(true);
+  };
+
+  const handleSelectBlock = (blockInfo) => {
+    setActiveBlock(blockInfo);
+  };
+
   // Hardware specifications map update handler
   const handleUpdateSpecsMap = (newSpecsMap) => {
     setActiveProduct((prev) => {
       const existing = prev.specifications || {};
       const internalPreserved = {};
-      ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'].forEach((k) => {
+      ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles'].forEach((k) => {
         if (existing[k] !== undefined) internalPreserved[k] = existing[k];
       });
       return {
@@ -424,7 +458,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         floating_images: floatingImages,
         section_order: sectionOrder,
         canvas_elements: canvasElements,
-        text_offsets: textOffsets
+        text_offsets: textOffsets,
+        block_styles: blockStyles
       };
 
       // Construct clean payload strictly conforming to ProductCreateRequest schema
@@ -524,6 +559,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           } else {
             setTextOffsets({});
           }
+          if (res.data.specifications?.block_styles) {
+            setBlockStyles(res.data.specifications.block_styles);
+          } else {
+            setBlockStyles({});
+          }
           setHasChanges(false);
           setLoading(false);
         })
@@ -579,6 +619,17 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             onHistoryStateChange={handleHistoryStateChange}
           />
 
+          {/* Floating Canva Studio Block Inspector when any block or text is clicked */}
+          {isEditMode && activeBlock && (
+            <CanvaBlockInspector
+              activeBlock={activeBlock}
+              blockStyle={blockStyles[activeBlock.id] || {}}
+              onUpdateStyle={(patch) => handleUpdateBlockStyle(activeBlock.id, patch)}
+              onResetStyle={() => handleResetBlockStyle(activeBlock.id)}
+              onClose={() => setActiveBlock(null)}
+            />
+          )}
+
           {/* Dynamic Section Ordering with Direct Visual Controls */}
           {sectionOrder.map((sectionKey, secIndex) => {
             const sectionLabels = {
@@ -586,6 +637,20 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
               configurator: '2. Trình Chọn Cấu Hình & Mua Hàng',
               bento: '3. Thẻ Đột Phá Bento Highlights',
               specs: '4. Bảng Thông Số Kỹ Thuật Tech Specs'
+            };
+
+            const getSectionCustomStyle = (key) => {
+              const s = blockStyles[`section-${key}`] || {};
+              return {
+                ...(s.backgroundColor ? { backgroundColor: s.backgroundColor } : {}),
+                ...(s.background ? { background: s.background } : {}),
+                ...(s.backgroundImage ? { backgroundImage: s.backgroundImage, backgroundSize: s.backgroundSize || 'cover', backgroundPosition: s.backgroundPosition || 'center' } : {}),
+                ...(s.padding ? { padding: s.padding } : {}),
+                ...(s.borderRadius ? { borderRadius: s.borderRadius } : {}),
+                ...(s.border ? { border: s.border } : {}),
+                ...(s.boxShadow ? { boxShadow: s.boxShadow } : {}),
+                ...(s.backdropFilter ? { backdropFilter: s.backdropFilter, WebkitBackdropFilter: s.backdropFilter } : {})
+              };
             };
 
             const renderSectionControl = () => {
@@ -605,6 +670,26 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {/* Canva Studio Style Section Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleSelectBlock({
+                          id: `section-${sectionKey}`,
+                          type: 'Khối Section',
+                          label: sectionLabels[sectionKey] || sectionKey,
+                          style: blockStyles[`section-${sectionKey}`] || {}
+                        })}
+                        className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all cursor-pointer font-medium text-xs shadow ${
+                          activeBlock?.id === `section-${sectionKey}`
+                            ? 'bg-[#0071e3] text-white ring-2 ring-white/30'
+                            : 'bg-white/10 hover:bg-white/20 text-[#2997ff]'
+                        }`}
+                        title="Mở Canva Studio đổi màu nền, chèn ảnh nền, viền và bo góc cho khối này"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>🎨 Canva Sửa Khối</span>
+                      </button>
+
                       {secIndex > 0 && (
                         <button
                           type="button"
@@ -645,9 +730,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             const sectionWrapperProps = {
               onDragOver: (e) => handleSectionDragOver(e, secIndex),
               onDrop: (e) => handleSectionDrop(e, secIndex),
+              style: getSectionCustomStyle(sectionKey),
               className: `relative group/sec transition-all ${
                 dropTargetIndex === secIndex ? 'ring-4 ring-[#0071e3] shadow-[0_0_40px_rgba(0,113,227,0.4)] rounded-3xl' : ''
-              } ${draggedSectionIndex === secIndex ? 'opacity-40' : ''}`
+              } ${draggedSectionIndex === secIndex ? 'opacity-40' : ''} ${
+                activeBlock?.id === `section-${sectionKey}` ? 'ring-2 ring-[#0071e3] ring-offset-4 ring-offset-black rounded-3xl' : ''
+              }`
             };
 
             if (sectionKey === 'hero') {
@@ -666,6 +754,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     onUpdateBadge={handleUpdateBadge}
                     textOffsets={textOffsets}
                     onUpdateTextOffset={handleUpdateTextOffset}
+                    blockStyles={blockStyles}
+                    activeBlockId={activeBlock?.id}
+                    onSelectBlock={handleSelectBlock}
                   />
                 </div>
               );
@@ -683,6 +774,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     isEditMode={isEditMode}
                     textOffsets={textOffsets}
                     onUpdateTextOffset={handleUpdateTextOffset}
+                    blockStyles={blockStyles}
+                    activeBlockId={activeBlock?.id}
+                    onSelectBlock={handleSelectBlock}
                   />
                 </div>
               );
@@ -700,6 +794,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     onReorderFeatures={handleReorderFeatures}
                     textOffsets={textOffsets}
                     onUpdateTextOffset={handleUpdateTextOffset}
+                    blockStyles={blockStyles}
+                    activeBlockId={activeBlock?.id}
+                    onSelectBlock={handleSelectBlock}
                   />
                 </div>
               );
@@ -715,6 +812,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     onUpdateSpecsMap={handleUpdateSpecsMap}
                     textOffsets={textOffsets}
                     onUpdateTextOffset={handleUpdateTextOffset}
+                    blockStyles={blockStyles}
+                    activeBlockId={activeBlock?.id}
+                    onSelectBlock={handleSelectBlock}
                   />
                 </div>
               );

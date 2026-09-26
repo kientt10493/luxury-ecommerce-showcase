@@ -8,13 +8,16 @@ export default function TechSpecs({
   isEditMode = false,
   onUpdateSpecsMap,
   textOffsets = {},
-  onUpdateTextOffset
+  onUpdateTextOffset,
+  blockStyles = {},
+  activeBlockId,
+  onSelectBlock
 }) {
   const { t } = useLanguage();
 
   if (!product) return null;
 
-  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'];
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles'];
   
   // Extract user-facing specs
   const rawSpecs = Object.entries(product.specifications || {})
@@ -72,6 +75,9 @@ export default function TechSpecs({
               id="specs-section-title"
               value={`${product.name} Tech Specs`}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['specs-section-title']}
+              isSelected={activeBlockId === 'specs-section-title'}
+              onSelectBlock={onSelectBlock}
               offset={textOffsets?.['specs-section-title']}
               onOffsetChange={onUpdateTextOffset}
               as="h2"
@@ -83,6 +89,9 @@ export default function TechSpecs({
               id="specs-section-subtitle"
               value={t('specs.subtitle')}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['specs-section-subtitle']}
+              isSelected={activeBlockId === 'specs-section-subtitle'}
+              onSelectBlock={onSelectBlock}
               offset={textOffsets?.['specs-section-subtitle']}
               onOffsetChange={onUpdateTextOffset}
               as="p"
@@ -101,8 +110,12 @@ export default function TechSpecs({
               {/* Spec Label */}
               <div className="sm:col-span-4 text-sm font-semibold text-white">
                 <EditableText
+                  id={`specs-label-${idx}`}
                   value={label}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.[`specs-label-${idx}`]}
+                  isSelected={activeBlockId === `specs-label-${idx}`}
+                  onSelectBlock={onSelectBlock}
                   onChange={(newLabel) => handleUpdateKey(label, newLabel)}
                   className="font-semibold text-white"
                   allowDrag={false}
@@ -112,8 +125,12 @@ export default function TechSpecs({
               {/* Spec Value */}
               <div className="sm:col-span-7 text-sm text-[#a1a1a6] leading-relaxed">
                 <EditableText
+                  id={`specs-val-${idx}`}
                   value={typeof value === 'object' ? JSON.stringify(value) : String(value)}
                   isEditing={isEditMode}
+                  blockStyle={blockStyles?.[`specs-val-${idx}`]}
+                  isSelected={activeBlockId === `specs-val-${idx}`}
+                  onSelectBlock={onSelectBlock}
                   onChange={(newVal) => handleUpdateValue(label, newVal)}
                   className="text-[#a1a1a6]"
                   allowDrag={false}
@@ -126,7 +143,7 @@ export default function TechSpecs({
                   <button
                     type="button"
                     onClick={() => handleDeleteRow(label)}
-                    className="p-1.5 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover/row:opacity-100"
+                    className="p-1.5 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover/row:opacity-100 cursor-pointer"
                     title={`Xóa dòng "${label}"`}
                   >
                     <Trash2 className="w-4 h-4" />

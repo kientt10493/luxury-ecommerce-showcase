@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Pencil, Move, RotateCcw } from 'lucide-react';
+import { Pencil, Move, RotateCcw, Sparkles } from 'lucide-react';
 
 export default function EditableText({
   value = '',
@@ -12,7 +12,10 @@ export default function EditableText({
   id = '',
   offset = { x: 0, y: 0 },
   onOffsetChange,
-  allowDrag = true
+  allowDrag = true,
+  blockStyle = {},
+  isSelected = false,
+  onSelectBlock
 }) {
   const contentRef = useRef(null);
   const [localOffset, setLocalOffset] = useState({ x: offset?.x || 0, y: offset?.y || 0 });
@@ -63,7 +66,9 @@ export default function EditableText({
       initY: localOffset.y
     };
 
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
   };
 
   const handlePointerMove = (e) => {
@@ -100,16 +105,51 @@ export default function EditableText({
     }
   };
 
+  const handleElementClick = (e) => {
+    if (isEditing && onSelectBlock && id) {
+      onSelectBlock({
+        id,
+        type: 'text',
+        label: value || id,
+        value,
+        style: blockStyle
+      });
+    }
+  };
+
   const hasOffset = localOffset.x !== 0 || localOffset.y !== 0;
   const transformStyle = hasOffset
     ? { transform: `translate3d(${localOffset.x}px, ${localOffset.y}px, 0)` }
-    : undefined;
+    : {};
 
-  // View mode
+  // Compute custom Canva Studio styling
+  const customBlockInlineStyle = {
+    ...transformStyle,
+    ...(blockStyle?.color ? { color: blockStyle.color } : {}),
+    ...(blockStyle?.fontSize ? { fontSize: blockStyle.fontSize } : {}),
+    ...(blockStyle?.fontFamily ? { fontFamily: blockStyle.fontFamily } : {}),
+    ...(blockStyle?.fontWeight ? { fontWeight: blockStyle.fontWeight } : {}),
+    ...(blockStyle?.fontStyle ? { fontStyle: blockStyle.fontStyle } : {}),
+    ...(blockStyle?.textAlign ? { textAlign: blockStyle.textAlign } : {}),
+    ...(blockStyle?.textTransform ? { textTransform: blockStyle.textTransform } : {}),
+    ...(blockStyle?.letterSpacing ? { letterSpacing: blockStyle.letterSpacing } : {}),
+    ...(blockStyle?.background ? { background: blockStyle.background } : {}),
+    ...(blockStyle?.backgroundColor ? { backgroundColor: blockStyle.backgroundColor } : {}),
+    ...(blockStyle?.backgroundImage ? { backgroundImage: blockStyle.backgroundImage } : {}),
+    ...(blockStyle?.backgroundSize ? { backgroundSize: blockStyle.backgroundSize } : {}),
+    ...(blockStyle?.backgroundPosition ? { backgroundPosition: blockStyle.backgroundPosition } : {}),
+    ...(blockStyle?.borderRadius ? { borderRadius: blockStyle.borderRadius } : {}),
+    ...(blockStyle?.border ? { border: blockStyle.border } : {}),
+    ...(blockStyle?.padding ? { padding: blockStyle.padding } : {}),
+    ...(blockStyle?.boxShadow ? { boxShadow: blockStyle.boxShadow } : {}),
+    ...(blockStyle?.backdropFilter ? { backdropFilter: blockStyle.backdropFilter, WebkitBackdropFilter: blockStyle.backdropFilter } : {})
+  };
+
+  // View mode (for site visitors)
   if (!isEditing) {
     return (
       <span 
-        style={transformStyle} 
+        style={customBlockInlineStyle} 
         className={`inline-block ${hasOffset ? 'relative z-10' : ''}`}
       >
         <Component className={className}>
@@ -122,9 +162,14 @@ export default function EditableText({
   // Edit mode
   return (
     <span 
-      style={transformStyle}
-      className={`relative group inline-block max-w-full transition-shadow ${
+      style={customBlockInlineStyle}
+      onClick={handleElementClick}
+      className={`relative group inline-block max-w-full transition-all ${
         isDragging ? 'z-40 scale-[1.02]' : 'z-20'
+      } ${
+        isSelected
+          ? 'ring-2 ring-[#0071e3] ring-offset-2 ring-offset-black/90 rounded-xl shadow-[0_0_25px_rgba(0,113,227,0.45)]'
+          : ''
       }`}
     >
       <Component
@@ -133,8 +178,10 @@ export default function EditableText({
         suppressContentEditableWarning={true}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`${className} cursor-text border border-dashed border-[#0071e3]/70 bg-[#0071e3]/10 hover:bg-[#0071e3]/15 focus:bg-[#0071e3]/20 focus:border-solid focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/50 focus:outline-none rounded-lg px-2 py-0.5 -mx-2 transition-all`}
-        title="Nhấp trực tiếp để sửa nội dung"
+        className={`${className} cursor-text border border-dashed ${
+          isSelected ? 'border-[#0071e3] bg-[#0071e3]/15' : 'border-[#0071e3]/60 bg-[#0071e3]/10 hover:bg-[#0071e3]/15'
+        } focus:bg-[#0071e3]/20 focus:border-solid focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/50 focus:outline-none rounded-lg px-2 py-0.5 -mx-2 transition-all`}
+        title="Nhấp trực tiếp để sửa nội dung và mở Canva Studio"
       >
         {value}
       </Component>
@@ -145,7 +192,9 @@ export default function EditableText({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className="absolute -top-3.5 -left-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30"
+          className={`absolute -top-4 -left-2 flex items-center gap-1 transition-opacity z-30 ${
+            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
         >
           <div
             className="bg-[#0071e3] hover:bg-[#0077ed] text-white p-1 rounded-full shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center transition-transform hover:scale-110"
@@ -165,6 +214,20 @@ export default function EditableText({
               <RotateCcw className="w-2.5 h-2.5" />
             </button>
           )}
+
+          {/* Canva Studio Tag */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleElementClick(e);
+            }}
+            className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-semibold flex items-center gap-0.5 shadow-md hover:scale-105 cursor-pointer"
+            title="Mở bảng chỉnh sửa Canva Studio cho khối này"
+          >
+            <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+            <span>Canva</span>
+          </button>
         </div>
       )}
 

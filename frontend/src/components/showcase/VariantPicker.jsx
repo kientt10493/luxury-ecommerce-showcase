@@ -11,7 +11,10 @@ export default function VariantPicker({
   onBuyNow,
   isEditMode = false,
   textOffsets = {},
-  onUpdateTextOffset
+  onUpdateTextOffset,
+  blockStyles = {},
+  activeBlockId,
+  onSelectBlock
 }) {
   const { t } = useLanguage();
   const { formatPrice, currency } = useCurrency();
@@ -75,6 +78,9 @@ export default function VariantPicker({
               id="config-header-title"
               value={`Buy ${product.name}`}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['config-header-title']}
+              isSelected={activeBlockId === 'config-header-title'}
+              onSelectBlock={onSelectBlock}
               offset={textOffsets?.['config-header-title']}
               onOffsetChange={onUpdateTextOffset}
               as="h2"
@@ -86,6 +92,9 @@ export default function VariantPicker({
               id="config-header-subtitle"
               value={`From ${formatPrice(currentPrice)} with Apple-grade warranty. Free express delivery.`}
               isEditing={isEditMode}
+              blockStyle={blockStyles?.['config-header-subtitle']}
+              isSelected={activeBlockId === 'config-header-subtitle'}
+              onSelectBlock={onSelectBlock}
               offset={textOffsets?.['config-header-subtitle']}
               onOffsetChange={onUpdateTextOffset}
               as="p"
