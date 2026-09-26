@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import CanvaBoundingBox from './CanvaBoundingBox';
 import CanvaDrawer from './CanvaDrawer';
 import CanvaImageSlider from './CanvaImageSlider';
+import CanvaIconRenderer from './CanvaIconRenderer';
 
 export default function CanvaOverlay({
   elements = [],
@@ -457,6 +458,121 @@ export default function CanvaOverlay({
     onChangeElements?.(updated);
   };
 
+  const handleAddButton = (label = 'Khám Phá Ngay', customStyle = {}) => {
+    saveSnapshot();
+    const width = 220;
+    const { x, y } = getInitialPosition(width);
+    const newElement = {
+      id: `btn-${Date.now()}`,
+      type: 'button',
+      x,
+      y,
+      width,
+      height: 52,
+      rotation: 0,
+      zIndex: 42,
+      content: label,
+      style: {
+        background: 'linear-gradient(135deg, #0071e3 0%, #0077ed 100%)',
+        color: '#ffffff',
+        fontSize: 14,
+        fontWeight: '600',
+        borderRadius: '9999px',
+        boxShadow: '0 10px 25px -5px rgba(0, 113, 227, 0.4)',
+        link: '#configuration',
+        ...customStyle
+      }
+    };
+    const updated = [...elements, newElement];
+    setSelectedId(newElement.id);
+    onChangeElements?.(updated);
+  };
+
+  const handleAddContainer = (title = '', customStyle = {}) => {
+    saveSnapshot();
+    const width = 360;
+    const height = 220;
+    const { x, y } = getInitialPosition(width);
+    const newElement = {
+      id: `box-${Date.now()}`,
+      type: 'container',
+      x,
+      y,
+      width,
+      height,
+      rotation: 0,
+      zIndex: 32,
+      content: title,
+      style: {
+        backgroundColor: 'rgba(22, 22, 23, 0.85)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        ...customStyle
+      }
+    };
+    const updated = [...elements, newElement];
+    setSelectedId(newElement.id);
+    onChangeElements?.(updated);
+  };
+
+  const handleAddIcon = (iconName = 'Sparkles', customStyle = {}) => {
+    saveSnapshot();
+    const width = 64;
+    const height = 64;
+    const { x, y } = getInitialPosition(width);
+    const newElement = {
+      id: `icon-${Date.now()}`,
+      type: 'icon',
+      x,
+      y,
+      width,
+      height,
+      rotation: 0,
+      zIndex: 42,
+      content: iconName,
+      style: {
+        fontSize: 36,
+        color: '#2997ff',
+        backgroundColor: 'rgba(41, 151, 255, 0.15)',
+        borderRadius: '9999px',
+        padding: '12px',
+        border: '1px solid rgba(41, 151, 255, 0.3)',
+        ...customStyle
+      }
+    };
+    const updated = [...elements, newElement];
+    setSelectedId(newElement.id);
+    onChangeElements?.(updated);
+  };
+
+  const handleAddSymbol = (symbolText = '★★★★★', customStyle = {}) => {
+    saveSnapshot();
+    const width = 200;
+    const { x, y } = getInitialPosition(width);
+    const newElement = {
+      id: `sym-${Date.now()}`,
+      type: 'symbol',
+      x,
+      y,
+      width,
+      rotation: 0,
+      zIndex: 42,
+      content: symbolText,
+      style: {
+        fontSize: 24,
+        color: '#fde047',
+        textAlign: 'center',
+        letterSpacing: '0.1em',
+        ...customStyle
+      }
+    };
+    const updated = [...elements, newElement];
+    setSelectedId(newElement.id);
+    onChangeElements?.(updated);
+  };
+
   // If NOT in Edit Mode, render static luxury elements for site visitors
   if (!isEditMode) {
     if (!elements || elements.length === 0) return null;
@@ -515,6 +631,81 @@ export default function CanvaOverlay({
                 >
                   {el.content}
                 </span>
+              )}
+
+              {el.type === 'button' && (
+                <a
+                  href={el.style?.link || '#configuration'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: el.style?.background || '#0071e3',
+                    color: el.style?.color || '#ffffff',
+                    borderRadius: el.style?.borderRadius || '9999px',
+                    fontSize: el.style?.fontSize ? `${el.style.fontSize}px` : '14px',
+                    fontWeight: el.style?.fontWeight || '600',
+                    boxShadow: el.style?.boxShadow || '0 10px 25px rgba(0,113,227,0.3)',
+                    padding: el.style?.padding || '12px 28px',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                  className="transition-transform hover:scale-105 active:scale-95"
+                >
+                  {el.content}
+                </a>
+              )}
+
+              {(el.type === 'container' || el.type === 'box') && (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: el.style?.backgroundColor || (el.style?.background ? undefined : 'rgba(22, 22, 23, 0.85)'),
+                    background: el.style?.background,
+                    borderRadius: el.style?.borderRadius || '24px',
+                    border: el.style?.border || '1px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: el.style?.boxShadow,
+                    backdropFilter: el.style?.backdropFilter || 'blur(20px)',
+                    WebkitBackdropFilter: el.style?.backdropFilter || 'blur(20px)',
+                    padding: el.style?.padding || '20px'
+                  }}
+                >
+                  {el.content && <span className="text-white text-sm">{el.content}</span>}
+                </div>
+              )}
+
+              {el.type === 'icon' && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: el.style?.backgroundColor,
+                    borderRadius: el.style?.borderRadius || '9999px',
+                    padding: el.style?.padding || '8px',
+                    border: el.style?.border
+                  }}
+                >
+                  <CanvaIconRenderer
+                    name={el.content || 'Sparkles'}
+                    size={el.style?.fontSize || 36}
+                    color={el.style?.color || '#2997ff'}
+                  />
+                </div>
+              )}
+
+              {el.type === 'symbol' && (
+                <div
+                  style={{
+                    color: el.style?.color || '#fde047',
+                    fontSize: el.style?.fontSize ? `${el.style.fontSize}px` : '24px',
+                    textAlign: el.style?.textAlign || 'center',
+                    letterSpacing: el.style?.letterSpacing || '0.1em'
+                  }}
+                >
+                  {el.content}
+                </div>
               )}
 
               {el.type === 'image' && (
@@ -578,6 +769,10 @@ export default function CanvaOverlay({
         onClose={onCloseDrawer}
         onAddText={handleAddText}
         onAddBadge={handleAddBadge}
+        onAddButton={handleAddButton}
+        onAddContainer={handleAddContainer}
+        onAddIcon={handleAddIcon}
+        onAddSymbol={handleAddSymbol}
         onAddImage={handleAddImage}
         onAddSlider={handleAddSlider}
       />

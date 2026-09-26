@@ -223,7 +223,28 @@ export default function VariantPicker({
             </div>
 
             {/* Step 3: Apple Order Summary Box */}
-            <div className="p-6 rounded-[24px] bg-[#161617] border border-[#2d2d30] space-y-5">
+            <div 
+              style={{
+                ...(blockStyles?.['picker-summary-card'] || {})
+              }}
+              onClick={() => {
+                if (isEditMode) {
+                  onSelectBlock?.({
+                    id: 'picker-summary-card',
+                    type: 'Khối Tóm Tắt Đơn',
+                    label: 'Khối Tóm Tắt Đặt Hàng',
+                    style: blockStyles?.['picker-summary-card'] || {}
+                  });
+                }
+              }}
+              className={`p-6 rounded-[24px] bg-[#161617] border transition-all space-y-5 ${
+                activeBlockId === 'picker-summary-card'
+                  ? 'ring-2 ring-[#0071e3] border-[#0071e3]'
+                  : isEditMode
+                  ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3] cursor-pointer'
+                  : 'border-[#2d2d30]'
+              }`}
+            >
               
               <div className="flex items-center justify-between border-b border-[#2c2c2e] pb-4">
                 <div>
@@ -246,13 +267,32 @@ export default function VariantPicker({
 
               {/* Big Apple Buy Pill Button */}
               <button
-                onClick={() => onBuyNow(product, currentVariant)}
+                onClick={(e) => {
+                  if (isEditMode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelectBlock?.({
+                      id: 'picker-buy-button',
+                      type: 'Nút Mua Hàng',
+                      label: 'Nút Mua Hàng (Variant Picker)',
+                      style: blockStyles?.['picker-buy-button'] || {}
+                    });
+                    return;
+                  }
+                  onBuyNow(product, currentVariant);
+                }}
                 disabled={currentVariant.stock_quantity <= 0}
+                style={{
+                  ...(blockStyles?.['picker-buy-button'] || {})
+                }}
                 className={`w-full py-3.5 rounded-full text-sm font-semibold transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
-                  currentVariant.stock_quantity > 0
+                  activeBlockId === 'picker-buy-button'
+                    ? 'ring-2 ring-white scale-[1.02] shadow-blue-500/50'
+                    : currentVariant.stock_quantity > 0
                     ? 'apple-btn-blue text-white'
                     : 'bg-[#2c2c2e] text-[#6e6e73] cursor-not-allowed'
                 }`}
+                title={isEditMode ? 'Nhấp để đổi màu sắc, font chữ nút Mua Hàng' : undefined}
               >
                 <Zap className="w-4 h-4 fill-current" />
                 <span>

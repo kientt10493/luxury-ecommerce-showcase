@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Bold,
   AlignLeft,
@@ -16,8 +16,14 @@ import {
   Sparkles,
   Layers,
   Play,
-  Pause
+  Pause,
+  Upload,
+  Loader2,
+  Film,
+  Link as LinkIcon,
+  Palette
 } from 'lucide-react';
+import { adminApi } from '../../../services/api';
 
 const LUXURY_PALETTE = [
   { name: 'Trắng tinh khiết', color: '#ffffff' },
@@ -39,6 +45,14 @@ const BG_PRESETS = [
   { name: 'Titanium Đen', value: 'rgba(0, 0, 0, 0.75)' }
 ];
 
+const BUTTON_THEMES = [
+  { name: 'Apple Blue', bg: 'linear-gradient(135deg, #0071e3 0%, #0077ed 100%)', color: '#ffffff' },
+  { name: 'Gold Luxury', bg: 'linear-gradient(135deg, #fde047 0%, #ca8a04 100%)', color: '#000000' },
+  { name: 'Frosted Glass', bg: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' },
+  { name: 'Emerald Glow', bg: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', color: '#ffffff' },
+  { name: 'Ruby Red', bg: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', color: '#ffffff' }
+];
+
 export default function CanvaToolbar({
   element,
   onUpdateStyle,
@@ -53,24 +67,55 @@ export default function CanvaToolbar({
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showSlideManager, setShowSlideManager] = useState(false);
   const [newSlideUrl, setNewSlideUrl] = useState('');
+  const [isUploadingMultiple, setIsUploadingMultiple] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const fileMultiUploadRef = useRef(null);
 
   if (!element) return null;
 
   const style = element.style || {};
   const isTextType = element.type === 'text' || element.type === 'badge';
-  const fontSize = style.fontSize ?? (element.type === 'badge' ? 12 : 24);
+  const fontSize = style.fontSize ?? (element.type === 'badge' ? 12 : element.type === 'icon' || element.type === 'symbol' ? 32 : 24);
   const currentColor = style.color || '#ffffff';
   const isBold = style.fontWeight === 'bold' || style.fontWeight === 700;
   const textAlign = style.textAlign || 'center';
   const opacity = Math.round((style.opacity ?? 1) * 100);
 
   const handleFontSizeChange = (delta) => {
-    const newSize = Math.max(10, Math.min(96, fontSize + delta));
+    const newSize = Math.max(10, Math.min(120, fontSize + delta));
     onUpdateStyle?.({ fontSize: newSize });
   };
 
   const handleOpacityChange = (val) => {
     onUpdateStyle?.({ opacity: Math.max(0.1, Math.min(1, val / 100)) });
+  };
+
+  const handleMultiUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setIsUploadingMultiple(true);
+    setUploadProgress(`0/${files.length}`);
+    try {
+      const uploadedUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`${i + 1}/${files.length}`);
+        const res = await adminApi.uploadImage(files[i]);
+        if (res.data?.url) {
+          uploadedUrls.push(res.data.url);
+        }
+      }
+      if (uploadedUrls.length > 0) {
+        const currentList = Array.isArray(element.content) ? element.content : [element.content].filter(Boolean);
+        onUpdateContent?.([...currentList, ...uploadedUrls]);
+      }
+    } catch (err) {
+      console.error('Lỗi tải nhiều ảnh:', err);
+      alert('Tải ảnh thất bại. Bạn vui lòng thử lại!');
+    } finally {
+      setIsUploadingMultiple(false);
+      setUploadProgress('');
+      if (fileMultiUploadRef.current) fileMultiUploadRef.current.value = '';
+    }
   };
 
   return (
@@ -80,8 +125,8 @@ export default function CanvaToolbar({
       onClick={(e) => e.stopPropagation()}
       className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#161617]/95 backdrop-blur-2xl border border-white/20 shadow-2xl text-xs text-white select-none whitespace-nowrap pointer-events-auto apple-animate-in"
     >
-      {/* 0. Direct Edit Content Button for Text & Badge */}
-      {isTextType && (
+      {/* 0. Direct Edit Content Button for Text, Badge, Button, Symbol */}
+      {(isTextType || element.type === 'button' || element.type === 'symbol') && (
         <button
           type="button"
           onClick={() => onStartEditing?.()}
@@ -101,25 +146,25 @@ export default function CanvaToolbar({
             <button
               type="button"
               onClick={() => handleFontSizeChange(-2)}
-              className="p-1 hover:bg-white/15 rounded text-white transition-colors cursor-pointer"
-              title="Giảm cỡ chữ"
+              className="p-1 hover:text-blue-400 cursor-pointer"
+              title="Giảm kích thước chữ"
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="px-1.5 font-mono text-[11px] font-semibold text-[#2997ff] min-w-[28px] text-center">
+            <span className="w-7 text-center font-mono text-[11px] font-semibold">
               {fontSize}
             </span>
             <button
               type="button"
               onClick={() => handleFontSizeChange(2)}
-              className="p-1 hover:bg-white/15 rounded text-white transition-colors cursor-pointer"
-              title="Tăng cỡ chữ"
+              className="p-1 hover:text-blue-400 cursor-pointer"
+              title="Tăng kích thước chữ"
             >
               <Plus className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Color Palette Toggle */}
+          {/* Color Picker Toggle */}
           <div className="relative">
             <button
               type="button"
@@ -128,34 +173,33 @@ export default function CanvaToolbar({
                 setShowBgPicker(false);
                 setShowSlideManager(false);
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
               title="Đổi màu chữ"
             >
               <span
                 className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-sm"
                 style={{ backgroundColor: currentColor }}
               />
-              <span className="text-[11px] hidden sm:inline">Màu</span>
+              <span className="text-[11px] hidden md:inline">Màu</span>
             </button>
 
             {showColorPicker && (
               <div className="absolute top-10 left-0 bg-[#1c1c1e] p-2.5 rounded-2xl border border-white/15 shadow-2xl z-50 grid grid-cols-4 gap-2 w-48">
-                {LUXURY_PALETTE.map((item) => (
+                {LUXURY_PALETTE.map((pal) => (
                   <button
-                    key={item.color}
+                    key={pal.name}
                     type="button"
                     onClick={() => {
-                      onUpdateStyle?.({ color: item.color });
+                      onUpdateStyle?.({ color: pal.color });
                       setShowColorPicker(false);
                     }}
-                    className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-white/10 transition-all cursor-pointer"
-                    title={item.name}
-                  >
-                    <span
-                      className="w-6 h-6 rounded-full border border-white/30 shadow"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  </button>
+                    className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer shadow"
+                    style={{
+                      backgroundColor: pal.color,
+                      borderColor: currentColor === pal.color ? '#0071e3' : 'rgba(255,255,255,0.2)'
+                    }}
+                    title={pal.name}
+                  />
                 ))}
               </div>
             )}
@@ -170,17 +214,19 @@ export default function CanvaToolbar({
                 ? 'bg-[#0071e3] border-[#0071e3] text-white shadow'
                 : 'bg-white/10 border-white/10 text-[#86868b] hover:text-white'
             }`}
-            title="In đậm (Bold)"
+            title="Đậm / Thường"
           >
-            <Bold className="w-3.5 h-3.5" />
+            <Bold className="w-3 h-3" />
           </button>
 
-          {/* Alignment Toggle */}
+          {/* Alignment */}
           <div className="flex items-center bg-white/10 rounded-xl p-0.5 border border-white/10">
             <button
               type="button"
               onClick={() => onUpdateStyle?.({ textAlign: 'left' })}
-              className={`p-1 rounded cursor-pointer ${textAlign === 'left' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'}`}
+              className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                textAlign === 'left' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'
+              }`}
               title="Căn trái"
             >
               <AlignLeft className="w-3 h-3" />
@@ -188,7 +234,9 @@ export default function CanvaToolbar({
             <button
               type="button"
               onClick={() => onUpdateStyle?.({ textAlign: 'center' })}
-              className={`p-1 rounded cursor-pointer ${textAlign === 'center' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'}`}
+              className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                textAlign === 'center' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'
+              }`}
               title="Căn giữa"
             >
               <AlignCenter className="w-3 h-3" />
@@ -196,7 +244,9 @@ export default function CanvaToolbar({
             <button
               type="button"
               onClick={() => onUpdateStyle?.({ textAlign: 'right' })}
-              className={`p-1 rounded cursor-pointer ${textAlign === 'right' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'}`}
+              className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                textAlign === 'right' ? 'bg-[#0071e3] text-white' : 'text-[#86868b] hover:text-white'
+              }`}
               title="Căn phải"
             >
               <AlignRight className="w-3 h-3" />
@@ -296,6 +346,16 @@ export default function CanvaToolbar({
       {/* 2b. Slider / Carousel Specific Controls */}
       {element.type === 'slider' && (
         <div className="flex items-center gap-1.5 px-1">
+          {/* Hidden Multi-upload file input */}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            ref={fileMultiUploadRef}
+            className="hidden"
+            onChange={handleMultiUpload}
+          />
+
           {/* Manage Slide Images Button */}
           <div className="relative">
             <button
@@ -316,7 +376,7 @@ export default function CanvaToolbar({
 
             {showSlideManager && (
               <div 
-                className="absolute top-10 left-0 bg-[#1c1c1e] p-3 rounded-2xl border border-white/20 shadow-2xl z-50 flex flex-col gap-2 w-72"
+                className="absolute top-10 left-0 bg-[#1c1c1e] p-3 rounded-2xl border border-white/20 shadow-2xl z-50 flex flex-col gap-2 w-80"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
@@ -326,8 +386,29 @@ export default function CanvaToolbar({
                   </span>
                 </div>
 
+                {/* Multi-file upload from computer */}
+                <button
+                  type="button"
+                  onClick={() => fileMultiUploadRef.current?.click()}
+                  disabled={isUploadingMultiple}
+                  className="w-full py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+                  title="Tải lên nhiều hình ảnh từ thư mục máy tính"
+                >
+                  {isUploadingMultiple ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang tải {uploadProgress}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>📸 Tải nhiều ảnh từ máy tính</span>
+                    </>
+                  )}
+                </button>
+
                 {/* Thumbnails list */}
-                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
                   {(Array.isArray(element.content) ? element.content : [element.content]).map((url, i) => (
                     <div key={i} className="flex items-center gap-2 bg-white/5 p-1.5 rounded-xl border border-white/10 group">
                       <img src={url} alt={`Slide ${i + 1}`} className="w-9 h-9 object-cover rounded-lg flex-shrink-0" />
@@ -354,7 +435,7 @@ export default function CanvaToolbar({
                   ))}
                 </div>
 
-                {/* Add new image input */}
+                {/* Add new image by URL */}
                 <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/10">
                   <input
                     type="text"
@@ -388,6 +469,21 @@ export default function CanvaToolbar({
             )}
           </div>
 
+          {/* Toggle Layout: Thumbnail Strip vs Standard Dots */}
+          <button
+            type="button"
+            onClick={() => onUpdateStyle?.({ showThumbnails: !style.showThumbnails })}
+            className={`px-2.5 py-1 rounded-xl text-[11px] border transition-colors cursor-pointer flex items-center gap-1.5 ${
+              style.showThumbnails
+                ? 'bg-[#0071e3] border-[#0071e3] text-white shadow'
+                : 'bg-white/10 border-white/10 text-neutral-300 hover:text-white'
+            }`}
+            title="Bật/Tắt hiển thị hàng ảnh thu nhỏ bên dưới"
+          >
+            <Film className="w-3 h-3 text-[#2997ff]" />
+            <span>{style.showThumbnails ? 'Hàng Thumbnails' : 'Chấm tròn'}</span>
+          </button>
+
           {/* Autoplay Toggle */}
           <button
             type="button"
@@ -416,6 +512,174 @@ export default function CanvaToolbar({
           >
             Bo góc: {style.borderRadius || '20px'}
           </button>
+        </div>
+      )}
+
+      {/* 2c. Button (CTA) Specific Controls */}
+      {element.type === 'button' && (
+        <div className="flex items-center gap-1.5 px-1">
+          {/* Link URL prompt */}
+          <button
+            type="button"
+            onClick={() => {
+              const target = prompt('Nhập liên kết khi nhấn nút (VD: #configuration, #overview, #specs hoặc https://...):', element.link || style.link || '#configuration');
+              if (target !== null) {
+                onUpdateStyle?.({ link: target.trim() });
+              }
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#2997ff] border border-white/15 transition-colors cursor-pointer"
+            title="Cài đặt link hành động khi bấm nút"
+          >
+            <LinkIcon className="w-3 h-3" />
+            <span className="text-[11px]">Link: {style.link || '#'}</span>
+          </button>
+
+          {/* Button Theme presets */}
+          <div className="flex items-center gap-1">
+            {BUTTON_THEMES.map((theme) => (
+              <button
+                key={theme.name}
+                type="button"
+                onClick={() => onUpdateStyle?.({ background: theme.bg, color: theme.color })}
+                className="w-5 h-5 rounded-full border border-white/20 hover:scale-110 transition-transform cursor-pointer shadow"
+                style={{ background: theme.bg }}
+                title={theme.name}
+              />
+            ))}
+          </div>
+
+          {/* Border radius toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const cur = style.borderRadius || '9999px';
+              const next = cur === '9999px' ? '12px' : cur === '12px' ? '4px' : '9999px';
+              onUpdateStyle?.({ borderRadius: next });
+            }}
+            className="px-2 py-1 rounded-xl text-[11px] bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-colors cursor-pointer"
+            title="Đổi hình dáng nút"
+          >
+            Bo góc: {style.borderRadius === '9999px' ? 'Viên thuốc' : style.borderRadius || 'Viên thuốc'}
+          </button>
+        </div>
+      )}
+
+      {/* 2d. Container / Box Specific Controls */}
+      {(element.type === 'container' || element.type === 'box') && (
+        <div className="flex items-center gap-1.5 px-1">
+          {/* Background Presets */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowBgPicker(!showBgPicker)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-amber-300 border border-white/15 transition-colors cursor-pointer"
+              title="Đổi phong cách khối nền"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span className="text-[11px]">Nền & Kính</span>
+            </button>
+
+            {showBgPicker && (
+              <div className="absolute top-10 left-0 bg-[#1c1c1e] p-2 rounded-2xl border border-white/15 shadow-2xl z-50 flex flex-col gap-1 w-48">
+                {BG_PRESETS.map((bg) => (
+                  <button
+                    key={bg.name}
+                    type="button"
+                    onClick={() => {
+                      onUpdateStyle?.({
+                        backgroundColor: bg.value,
+                        border: bg.value === 'transparent' ? '1px dashed rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.18)',
+                        backdropFilter: bg.value === 'transparent' ? 'none' : 'blur(20px)'
+                      });
+                      setShowBgPicker(false);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-start text-[11px] hover:bg-white/10 text-white transition-colors cursor-pointer"
+                  >
+                    {bg.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Border radius */}
+          <button
+            type="button"
+            onClick={() => {
+              const cur = parseInt(style.borderRadius) || 24;
+              const next = cur === 24 ? '32px' : cur === 32 ? '0px' : cur === 0 ? '16px' : '24px';
+              onUpdateStyle?.({ borderRadius: next });
+            }}
+            className="px-2 py-1 rounded-xl text-[11px] bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-colors cursor-pointer"
+            title="Đổi bo góc khối"
+          >
+            Bo góc: {style.borderRadius || '24px'}
+          </button>
+        </div>
+      )}
+
+      {/* 2e. Icon & Symbol Specific Controls */}
+      {(element.type === 'icon' || element.type === 'symbol') && (
+        <div className="flex items-center gap-1.5 px-1">
+          {/* Size +/- */}
+          <div className="flex items-center bg-white/10 rounded-xl px-1 py-0.5 border border-white/10">
+            <button
+              type="button"
+              onClick={() => handleFontSizeChange(-4)}
+              className="p-1 hover:text-blue-400 cursor-pointer"
+              title="Thu nhỏ icon"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="w-7 text-center font-mono text-[11px] font-semibold">
+              {fontSize}px
+            </span>
+            <button
+              type="button"
+              onClick={() => handleFontSizeChange(4)}
+              className="p-1 hover:text-blue-400 cursor-pointer"
+              title="Phóng to icon"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Color picker */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+              title="Đổi màu biểu tượng"
+            >
+              <span
+                className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-sm"
+                style={{ backgroundColor: currentColor }}
+              />
+              <span className="text-[11px]">Màu</span>
+            </button>
+
+            {showColorPicker && (
+              <div className="absolute top-10 left-0 bg-[#1c1c1e] p-2.5 rounded-2xl border border-white/15 shadow-2xl z-50 grid grid-cols-4 gap-2 w-48">
+                {LUXURY_PALETTE.map((pal) => (
+                  <button
+                    key={pal.name}
+                    type="button"
+                    onClick={() => {
+                      onUpdateStyle?.({ color: pal.color });
+                      setShowColorPicker(false);
+                    }}
+                    className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer shadow"
+                    style={{
+                      backgroundColor: pal.color,
+                      borderColor: currentColor === pal.color ? '#0071e3' : 'rgba(255,255,255,0.2)'
+                    }}
+                    title={pal.name}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

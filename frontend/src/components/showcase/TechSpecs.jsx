@@ -101,7 +101,29 @@ export default function TechSpecs({
         </div>
 
         {/* Minimalist Apple Specs List with Hairline Dividers */}
-        <div className="border-t border-[#333336] divide-y divide-[#262629]">
+        <div 
+          style={{
+            ...(blockStyles?.['specs-table-card'] || {})
+          }}
+          onClick={() => {
+            if (isEditMode) {
+              onSelectBlock?.({
+                id: 'specs-table-card',
+                type: 'Bảng Thông Số',
+                label: 'Khối Bảng Thông Số Kỹ Thuật',
+                style: blockStyles?.['specs-table-card'] || {}
+              });
+            }
+          }}
+          className={`border-t border-[#333336] divide-y divide-[#262629] transition-all rounded-2xl ${
+            activeBlockId === 'specs-table-card'
+              ? 'ring-2 ring-[#0071e3] p-4 bg-white/5'
+              : isEditMode
+              ? 'hover:ring-1 hover:ring-[#0071e3]/40 cursor-pointer'
+              : ''
+          }`}
+          title={isEditMode ? 'Nhấp để đổi nền, viền và kiểu dáng bảng thông số bằng Canva Studio' : undefined}
+        >
           {specs.map(([label, value], idx) => (
             <div
               key={`${label}-${idx}`}

@@ -134,7 +134,27 @@ export default function HeroShowcase({
           </div>
 
           {/* Pricing Tag */}
-          <div className="pt-2 text-base text-[#86868b] flex items-center justify-center gap-2">
+          <div 
+            onClick={() => {
+              if (isEditMode) {
+                onSelectBlock?.({
+                  id: 'hero-pricing-box',
+                  type: 'Khối Giá Bán',
+                  label: 'Khối Hiển Thị Giá Bán',
+                  style: blockStyles?.['hero-pricing-box'] || {}
+                });
+              }
+            }}
+            style={{
+              ...(blockStyles?.['hero-pricing-box'] || {})
+            }}
+            className={`pt-2 text-base text-[#86868b] flex items-center justify-center gap-2 rounded-xl transition-all ${
+              isEditMode ? 'cursor-pointer hover:bg-white/5 p-1.5' : ''
+            } ${
+              activeBlockId === 'hero-pricing-box' ? 'ring-2 ring-[#0071e3] bg-white/10 p-1.5' : ''
+            }`}
+            title={isEditMode ? 'Nhấp để chỉnh màu sắc, cỡ chữ khối giá bán bằng Canva Studio' : undefined}
+          >
             <span>{t('hero.starting_at')}</span>
             <span className="text-white font-semibold text-lg">{formatPrice(product.price)}</span>
             {product.compare_at_price && (
@@ -147,15 +167,51 @@ export default function HeroShowcase({
           {/* Apple Action CTAs */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => onQuickBuy(product)}
-              className="apple-btn-blue px-7 py-2.5 text-sm shadow-lg shadow-blue-500/20 font-medium cursor-pointer"
+              onClick={(e) => {
+                if (isEditMode) {
+                  e.preventDefault();
+                  onSelectBlock?.({
+                    id: 'hero-cta-buy',
+                    type: 'Nút Bấm CTA',
+                    label: 'Nút Mua Ngay (Hero CTA)',
+                    style: blockStyles?.['hero-cta-buy'] || {}
+                  });
+                  return;
+                }
+                onQuickBuy(product);
+              }}
+              style={{
+                ...(blockStyles?.['hero-cta-buy'] || {})
+              }}
+              className={`apple-btn-blue px-7 py-2.5 text-sm shadow-lg shadow-blue-500/20 font-medium cursor-pointer transition-all ${
+                activeBlockId === 'hero-cta-buy' ? 'ring-2 ring-white scale-105 shadow-blue-500/40' : ''
+              }`}
+              title={isEditMode ? 'Nhấp để đổi màu nền, viền, font chữ của nút Mua Ngay' : undefined}
             >
               {t('hero.buy_now')}
             </button>
 
             <a
               href="#configuration"
-              className="apple-link text-sm"
+              onClick={(e) => {
+                if (isEditMode) {
+                  e.preventDefault();
+                  onSelectBlock?.({
+                    id: 'hero-cta-explore',
+                    type: 'Liên Kết',
+                    label: 'Link Khám Phá Thông Số',
+                    style: blockStyles?.['hero-cta-explore'] || {}
+                  });
+                  return;
+                }
+              }}
+              style={{
+                ...(blockStyles?.['hero-cta-explore'] || {})
+              }}
+              className={`apple-link text-sm p-1 rounded-lg transition-all ${
+                activeBlockId === 'hero-cta-explore' ? 'ring-2 ring-[#0071e3] bg-white/10' : ''
+              }`}
+              title={isEditMode ? 'Nhấp để đổi kiểu chữ & màu sắc link khám phá' : undefined}
             >
               <span>{t('hero.explore_specs')}</span>
               <ChevronRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
@@ -226,11 +282,26 @@ export default function HeroShowcase({
                 }
               }
             }}
+            style={{
+              ...(blockStyles?.['hero-hardware-frame'] || {})
+            }}
+            onClick={() => {
+              if (isEditMode) {
+                onSelectBlock?.({
+                  id: 'hero-hardware-frame',
+                  type: 'Khung Ảnh Sản Phẩm',
+                  label: 'Khung Trưng Bày Phần Cứng Hero',
+                  style: blockStyles?.['hero-hardware-frame'] || {}
+                });
+              }
+            }}
             className={`relative w-full aspect-[16/10] max-h-[520px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#111113] to-[#050505] border transition-all p-4 sm:p-8 flex items-center justify-center shadow-2xl group ${
               isDragOver
                 ? 'border-[#0071e3] border-dashed ring-4 ring-[#0071e3]/30 scale-[1.01]'
+                : activeBlockId === 'hero-hardware-frame'
+                ? 'ring-4 ring-[#0071e3] border-solid'
                 : isEditMode
-                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3] cursor-pointer'
                 : 'border-[#2d2d30]'
             }`}
           >

@@ -1,0 +1,71 @@
+import React from 'react';
+import {
+  Star,
+  ShieldCheck,
+  Sparkles,
+  Flame,
+  Zap,
+  Award,
+  Gem,
+  Heart,
+  Check,
+  ShoppingBag,
+  Truck,
+  Battery,
+  Cpu,
+  Clock,
+  Crown,
+  Globe,
+  Wifi,
+  Bell,
+  Tag,
+  Gift,
+  Compass,
+  Smartphone,
+  Headphones,
+  Watch,
+  Layers,
+  CircleCheck,
+  Smile,
+  Eye,
+  Camera,
+  Play
+} from 'lucide-react';
+
+export const ICON_MAP = {
+  Star,
+  ShieldCheck,
+  Sparkles,
+  Flame,
+  Zap,
+  Award,
+  Gem,
+  Heart,
+  Check,
+  ShoppingBag,
+  Truck,
+  Battery,
+  Cpu,
+  Clock,
+  Crown,
+  Globe,
+  Wifi,
+  Bell,
+  Tag,
+  Gift,
+  Compass,
+  Smartphone,
+  Headphones,
+  Watch,
+  Layers,
+  CircleCheck,
+  Smile,
+  Eye,
+  Camera,
+  Play
+};
+
+export default function CanvaIconRenderer({ name = 'Sparkles', size = 32, color = '#2997ff', className = '' }) {
+  const IconComponent = ICON_MAP[name] || Sparkles;
+  return <IconComponent size={size} color={color} className={className} />;
+}

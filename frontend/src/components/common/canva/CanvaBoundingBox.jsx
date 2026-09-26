@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { RotateCw, Move, Trash2, Check } from 'lucide-react';
 import CanvaToolbar from './CanvaToolbar';
 import CanvaImageSlider from './CanvaImageSlider';
+import CanvaIconRenderer from './CanvaIconRenderer';
 
 export default function CanvaBoundingBox({
   element,
@@ -338,17 +339,20 @@ export default function CanvaBoundingBox({
           fontSize: `${style.fontSize || (type === 'badge' ? 12 : 24)}px`,
           color: style.color || '#ffffff',
           fontWeight: style.fontWeight || 'normal',
-          textAlign: style.textAlign || 'center',
-          backgroundColor: style.backgroundColor || 'transparent',
-          borderRadius: `${style.borderRadius || 0}px`,
+          backgroundColor: style.backgroundColor || (style.background ? undefined : 'transparent'),
+          background: style.background,
+          borderRadius: typeof style.borderRadius === 'number' ? `${style.borderRadius}px` : style.borderRadius || '0px',
           border: style.border || 'none',
+          boxShadow: style.boxShadow,
+          backdropFilter: style.backdropFilter,
+          WebkitBackdropFilter: style.backdropFilter,
           opacity: style.opacity ?? 1,
-          padding: style.padding || (type === 'badge' ? '6px 14px' : '4px')
+          padding: style.padding || (type === 'badge' ? '6px 14px' : type === 'button' ? '12px 24px' : '4px')
         }}
         className="w-full h-full overflow-hidden flex items-center justify-center transition-all pointer-events-auto"
       >
-        {/* Text / Badge Display or Inline Editor */}
-        {(type === 'text' || type === 'badge') && (
+        {/* Text / Badge / Symbol Display or Inline Editor */}
+        {(type === 'text' || type === 'badge' || type === 'symbol') && (
           isEditingText ? (
             <div
               className="w-full flex flex-col gap-2 p-1 z-50 pointer-events-auto"
@@ -368,7 +372,7 @@ export default function CanvaBoundingBox({
                 }}
                 rows={Math.max(2, (content || '').split('\n').length)}
                 className="w-full bg-[#161617]/95 text-white rounded-xl p-2.5 text-inherit font-inherit border-2 border-[#0071e3] outline-none shadow-2xl resize-none text-left"
-                placeholder="Nhập nội dung văn bản..."
+                placeholder="Nhập nội dung..."
               />
               <div className="flex items-center justify-between gap-2 px-1">
                 <span className="text-[10px] text-[#86868b]">Ctrl+Enter để xong</span>
@@ -384,7 +388,7 @@ export default function CanvaBoundingBox({
             </div>
           ) : (
             <div
-              className="w-full break-words leading-snug cursor-pointer"
+              className="w-full break-words leading-snug cursor-pointer select-none"
               onClick={(e) => {
                 if (isSelected) {
                   e.stopPropagation();
@@ -393,9 +397,72 @@ export default function CanvaBoundingBox({
               }}
               title={isSelected ? 'Nhấp để chỉnh sửa nội dung' : 'Nhấp chọn'}
             >
-              {content || (type === 'badge' ? 'Huy hiệu mới' : 'Nhập văn bản...')}
+              {content || (type === 'badge' ? 'Huy hiệu mới' : type === 'symbol' ? '✦' : 'Nhập văn bản...')}
             </div>
           )
+        )}
+
+        {/* Button Display / Editor */}
+        {type === 'button' && (
+          isEditingText ? (
+            <div
+              className="w-full flex items-center gap-2 p-1 z-50 pointer-events-auto"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                ref={textInputRef}
+                type="text"
+                value={content}
+                onChange={(e) => onUpdateContent?.(id, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setIsEditingText(false);
+                }}
+                className="w-full bg-black/80 text-white rounded-lg px-2 py-1 text-center font-inherit border border-[#0071e3] outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setIsEditingText(false)}
+                className="px-2 py-1 rounded bg-[#0071e3] text-white text-xs"
+              >
+                Xong
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={(e) => {
+                if (isSelected) {
+                  e.stopPropagation();
+                  setIsEditingText(true);
+                }
+              }}
+              className="w-full text-center font-semibold cursor-pointer select-none"
+              title="Nhấn đúp để đổi chữ trên nút"
+            >
+              {content || 'Nút bấm CTA'}
+            </div>
+          )
+        )}
+
+        {/* Container / Card Box Display */}
+        {(type === 'container' || type === 'box') && (
+          <div
+            className="w-full h-full flex items-center justify-center p-3 text-center opacity-80"
+            title="Khối nền tự do"
+          >
+            {content && <span className="text-xs text-neutral-300 font-medium">{content}</span>}
+          </div>
+        )}
+
+        {/* Icon Display */}
+        {type === 'icon' && (
+          <div className="flex items-center justify-center p-2">
+            <CanvaIconRenderer
+              name={content || 'Sparkles'}
+              size={style.fontSize || 36}
+              color={style.color || '#2997ff'}
+            />
+          </div>
         )}
 
         {/* Image Display */}
