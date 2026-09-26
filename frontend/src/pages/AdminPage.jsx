@@ -225,6 +225,29 @@ export default function AdminPage({ onBackToStore }) {
     setIsModalOpen(true);
   };
 
+  const handleOpenEditModal = async (product) => {
+    try {
+      setLoading(true);
+      const res = await adminApi.getProduct(product.id);
+      const data = res.data;
+      setEditingProduct(product);
+      setActiveLangTab('vi');
+      setProductForm({
+        slug: data.slug,
+        images: data.images && data.images.length > 0 ? data.images : [''],
+        is_featured: data.is_featured || false,
+        translations: data.translations,
+        variant: data.variant
+      });
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert('Không thể tải chi tiết sản phẩm để chỉnh sửa.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Helper: Load a preset template in 1-click for non-tech users
   const handleApplyPreset = (preset) => {
     setProductForm({
@@ -546,13 +569,22 @@ export default function AdminPage({ onBackToStore }) {
                     <td className="py-3.5 px-6 font-mono font-medium text-[#2997ff]">{p.total_stock} cái</td>
                     <td className="py-3.5 px-6 font-semibold text-[#f5f5f7]">{formatPrice(p.price, 'USD')}</td>
                     <td className="py-3.5 px-6 text-end">
-                      <button
-                        onClick={() => handleDeleteProduct(p.id)}
-                        className="p-2 rounded-full bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
-                        title="Xóa sản phẩm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(p)}
+                          className="p-2 rounded-full bg-[#0071e3]/10 text-[#2997ff] hover:bg-[#0071e3]/20 transition-all cursor-pointer"
+                          title="Chỉnh sửa sản phẩm"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p.id)}
+                          className="p-2 rounded-full bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
+                          title="Xóa sản phẩm"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -630,32 +662,36 @@ export default function AdminPage({ onBackToStore }) {
 
             <div className="mb-6">
               <h3 className="text-xl font-bold tracking-tight text-white">
-                Tạo Sản Phẩm Mới Để Giới Thiệu
+                {editingProduct ? `Chỉnh Sửa Sản Phẩm: ${editingProduct.name}` : 'Tạo Sản Phẩm Mới Để Giới Thiệu'}
               </h3>
               <p className="text-xs text-[#86868b] mt-1">
-                Dành cho người quản lý: Điền thông tin sản phẩm hoặc chọn mẫu có sẵn để xuất bản ngay lên website.
+                {editingProduct
+                  ? 'Thay đổi giá cả, hình ảnh, thông số kỹ thuật và nội dung bài viết 3 ngôn ngữ.'
+                  : 'Dành cho người quản lý: Điền thông tin sản phẩm hoặc chọn mẫu có sẵn để xuất bản ngay lên website.'}
               </p>
             </div>
 
-            {/* Quick 1-Click Preset Template Bar */}
-            <div className="mb-6 p-4 rounded-2xl bg-[#1d1d1f] border border-[#2c2c2e] space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2997ff]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Hoặc chọn nhanh 1 mẫu sản phẩm có sẵn (1-Click Fill):</span>
+            {/* Quick 1-Click Preset Template Bar (Only when creating new product) */}
+            {!editingProduct && (
+              <div className="mb-6 p-4 rounded-2xl bg-[#1d1d1f] border border-[#2c2c2e] space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2997ff]">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Hoặc chọn nhanh 1 mẫu sản phẩm có sẵn (1-Click Fill):</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_TEMPLATES.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset)}
+                      className="px-3 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-xs text-[#f5f5f7] border border-[#424245] transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {PRESET_TEMPLATES.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleApplyPreset(preset)}
-                    className="px-3 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-xs text-[#f5f5f7] border border-[#424245] transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>{preset.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             <form onSubmit={handleSaveProduct} className="space-y-6">
               
@@ -915,7 +951,7 @@ export default function AdminPage({ onBackToStore }) {
                   type="submit"
                   className="apple-btn-blue px-7 py-2.5 text-xs font-semibold cursor-pointer shadow-lg"
                 >
-                  Xuất Bản Sản Phẩm Ngay
+                  {editingProduct ? 'Lưu Thay Đổi Sản Phẩm' : 'Xuất Bản Sản Phẩm Ngay'}
                 </button>
               </div>
 

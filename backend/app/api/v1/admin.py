@@ -157,7 +157,59 @@ def create_product(
 
     db.commit()
     db.refresh(prod)
-    return {"message": "Product created successfully", "id": prod.id, "slug": prod.slug}
+@router.get("/products/{product_id}")
+def get_admin_product_detail(
+    product_id: int,
+    admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    prod = db.query(Product).filter(Product.id == product_id).first()
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    translations_data = {
+        t.language: {
+            "name": t.name,
+            "tagline": t.tagline or "",
+            "description": t.description or "",
+            "features": "\n".join(t.features) if isinstance(t.features, list) else (t.features or "")
+        }
+        for t in prod.translations
+    }
+
+    for lang in ["en", "vi", "ar"]:
+        if lang not in translations_data:
+            translations_data[lang] = {"name": "", "tagline": "", "description": "", "features": ""}
+
+    first_variant = prod.variants[0] if prod.variants else None
+    price_usd = 0.0
+    price_vnd = 0.0
+    price_sar = 0.0
+    if first_variant:
+        for p in first_variant.prices:
+            if p.currency == "USD":
+                price_usd = float(p.price)
+            elif p.currency == "VND":
+                price_vnd = float(p.price)
+            elif p.currency == "SAR":
+                price_sar = float(p.price)
+
+    return {
+        "id": prod.id,
+        "slug": prod.slug,
+        "images": prod.images or [],
+        "is_featured": prod.is_featured,
+        "translations": translations_data,
+        "variant": {
+            "sku": first_variant.sku if first_variant else "",
+            "color": (first_variant.attributes or {}).get("color", "") if first_variant else "",
+            "storage": (first_variant.attributes or {}).get("storage", "") if first_variant else "",
+            "stock": first_variant.stock_quantity if first_variant else 0,
+            "price_usd": price_usd,
+            "price_vnd": price_vnd,
+            "price_sar": price_sar,
+        }
+    }
 
 @router.put("/products/{product_id}")
 def update_product(

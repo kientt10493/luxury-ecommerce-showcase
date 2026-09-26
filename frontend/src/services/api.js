@@ -56,6 +56,8 @@ export const adminApi = {
 
   createProduct: (payload) => api.post('/admin/products', payload),
 
+  getProduct: (id) => api.get(`/admin/products/${id}`),
+
   updateProduct: (id, payload) => api.put(`/admin/products/${id}`, payload),
 
   deleteProduct: (id) => api.delete(`/admin/products/${id}`),
