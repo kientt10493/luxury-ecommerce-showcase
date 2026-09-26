@@ -114,10 +114,10 @@ export default function DraggableFloatingImage({
         zIndex: isEditMode ? 45 : 30,
         touchAction: isEditMode ? 'none' : 'auto'
       }}
-      className={`select-none transition-shadow duration-150 ${
+      className={`select-none transition-shadow duration-150 pointer-events-auto ${
         isEditMode
           ? 'ring-2 ring-[#0071e3] ring-offset-2 ring-offset-black rounded-2xl p-2 bg-[#161617]/95 backdrop-blur-xl shadow-2xl cursor-grab active:cursor-grabbing'
-          : 'pointer-events-auto drop-shadow-2xl'
+          : 'drop-shadow-2xl'
       }`}
     >
       {/* Edit Mode Control Center */}

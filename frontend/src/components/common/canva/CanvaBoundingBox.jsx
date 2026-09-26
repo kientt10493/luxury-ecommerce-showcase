@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCw, Move } from 'lucide-react';
+import { RotateCw, Move, Trash2, Check } from 'lucide-react';
 import CanvaToolbar from './CanvaToolbar';
 
 export default function CanvaBoundingBox({
@@ -7,6 +7,7 @@ export default function CanvaBoundingBox({
   isSelected = false,
   isEditMode = false,
   onSelect,
+  onSaveSnapshot,
   onUpdateTransform,
   onUpdateContent,
   onUpdateStyle,
@@ -18,11 +19,15 @@ export default function CanvaBoundingBox({
   const [isEditingText, setIsEditingText] = useState(false);
   const containerRef = useRef(null);
   const textInputRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ startX: 0, startY: 0, initX: 0, initY: 0 });
 
-  // Focus contenteditable on double click
+  // Focus textarea when editing begins
   useEffect(() => {
     if (isEditingText && textInputRef.current) {
       textInputRef.current.focus();
+      // Select all text for quick overwriting
+      textInputRef.current.select();
     }
   }, [isEditingText]);
 
@@ -41,41 +46,67 @@ export default function CanvaBoundingBox({
     style = {}
   } = element;
 
-  // 1. Drag / Move Handler
+  // 1. Drag / Move Handler with Pointer Capture
   const handleDragStart = (e) => {
     if (!isEditMode) return;
-    if (e.target.closest('button') || e.target.closest('input') || isEditingText) return;
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || isEditingText) {
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();
     onSelect?.(id);
 
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const initX = x;
-    const initY = y;
-
-    const onPointerMove = (moveEvent) => {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      const newX = Math.max(10, Math.min(window.innerWidth - 60, Math.round(initX + dx)));
-      const newY = Math.max(10, Math.round(initY + dy));
-      onUpdateTransform?.(id, { x: newX, y: newY });
+    isDraggingRef.current = true;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: x,
+      initY: y
     };
 
-    const onPointerUp = () => {
+    // Save snapshot once at the start of drag gesture for clean undo
+    onSaveSnapshot?.();
+
+    if (e.currentTarget.setPointerCapture) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+
+    const onPointerMove = (moveEvent) => {
+      if (!isDraggingRef.current) return;
+      moveEvent.preventDefault();
+      const dx = moveEvent.clientX - dragStartRef.current.startX;
+      const dy = moveEvent.clientY - dragStartRef.current.startY;
+      const newX = Math.max(0, Math.min(window.innerWidth - 60, Math.round(dragStartRef.current.initX + dx)));
+      const newY = Math.max(0, Math.round(dragStartRef.current.initY + dy));
+      onUpdateTransform?.(id, { x: newX, y: newY }, false);
+    };
+
+    const onPointerUp = (upEvent) => {
+      isDraggingRef.current = false;
+      if (upEvent?.currentTarget?.releasePointerCapture) {
+        try {
+          upEvent.currentTarget.releasePointerCapture(upEvent.pointerId);
+        } catch (_) {}
+      }
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   // 2. 8-Point Resize Handler
   const handleResizeStart = (e, handleDirection) => {
     e.preventDefault();
     e.stopPropagation();
+
+    onSaveSnapshot?.();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -115,27 +146,35 @@ export default function CanvaBoundingBox({
         }
       }
 
-      onUpdateTransform?.(id, {
-        x: Math.round(newX),
-        y: Math.round(newY),
-        width: Math.round(newW),
-        height: Math.round(newH)
-      });
+      onUpdateTransform?.(
+        id,
+        {
+          x: Math.round(newX),
+          y: Math.round(newY),
+          width: Math.round(newW),
+          height: Math.round(newH)
+        },
+        false
+      );
     };
 
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   // 3. Rotation Handle
   const handleRotateStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    onSaveSnapshot?.();
 
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -156,16 +195,18 @@ export default function CanvaBoundingBox({
         }
       }
 
-      onUpdateTransform?.(id, { rotation: deg });
+      onUpdateTransform?.(id, { rotation: deg }, false);
     };
 
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   // 8 Handles specs
@@ -183,6 +224,7 @@ export default function CanvaBoundingBox({
   return (
     <div
       ref={containerRef}
+      data-canva-element="true"
       onPointerDown={handleDragStart}
       onClick={(e) => {
         if (isEditMode) {
@@ -204,26 +246,46 @@ export default function CanvaBoundingBox({
         height: height ? `${height}px` : 'auto',
         transform: `rotate(${rotation}deg)`,
         transformOrigin: 'center center',
-        zIndex: isSelected ? 50 : zIndex
+        zIndex: isSelected ? 50 : (zIndex || 35)
       }}
-      className={`select-none transition-shadow ${
-        isEditMode ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-auto'
+      className={`select-none pointer-events-auto transition-shadow ${
+        isEditMode ? 'cursor-grab active:cursor-grabbing' : ''
+      } ${
+        isEditMode && !isSelected
+          ? 'hover:ring-1 hover:ring-[#0071e3]/60 hover:rounded-sm transition-all'
+          : ''
       }`}
     >
       {/* Active Bounding Box Outline */}
       {isEditMode && isSelected && (
         <>
           {/* Blue Canva Border */}
-          <div className="absolute -inset-1 border-2 border-[#0071e3] pointer-events-none rounded-sm shadow-md" />
+          <div className="absolute -inset-1 border-2 border-[#0071e3] pointer-events-none rounded-sm shadow-xl ring-2 ring-[#0071e3]/30" />
+
+          {/* Quick Delete Floating Button at Top-Right Corner */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(id);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute -top-3.5 -right-3.5 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl border-2 border-white/40 z-50 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+            title="Xóa đối tượng này"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
 
           {/* Contextual Floating Toolbar */}
           <CanvaToolbar
             element={element}
+            onStartEditing={() => setIsEditingText(true)}
+            onUpdateContent={(val) => onUpdateContent?.(id, val)}
             onUpdateStyle={(patch) => onUpdateStyle?.(id, patch)}
-            onBringForward={onBringForward}
-            onSendBackward={onSendBackward}
-            onDuplicate={onDuplicate}
-            onDelete={onDelete}
+            onBringForward={() => onBringForward?.(id)}
+            onSendBackward={() => onSendBackward?.(id)}
+            onDuplicate={() => onDuplicate?.(id)}
+            onDelete={() => onDelete?.(id)}
           />
 
           {/* 8 Resize Handles */}
@@ -232,17 +294,39 @@ export default function CanvaBoundingBox({
               key={h.dir}
               onPointerDown={(e) => handleResizeStart(e, h.dir)}
               style={{ cursor: h.cursor }}
-              className={`absolute w-3 h-3 bg-white border-2 border-[#0071e3] rounded-sm shadow-sm z-50 ${h.pos}`}
+              className={`absolute w-3 h-3 bg-white border-2 border-[#0071e3] rounded-sm shadow-md z-50 pointer-events-auto hover:scale-125 transition-transform ${h.pos}`}
             />
           ))}
 
-          {/* 360 Rotation Handle (Located 24px below bottom-center) */}
+          {/* Bottom Action Pill: Dedicated Move & Rotate Handles */}
           <div
-            onPointerDown={handleRotateStart}
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[#0071e3] shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing z-50 text-[#0071e3] hover:scale-110 transition-transform"
-            title={`Xoay góc (Hiện tại: ${rotation}°)`}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute -bottom-11 left-1/2 -translate-x-1/2 flex items-center gap-2 z-50 pointer-events-auto"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            {/* Dedicated Move Handle */}
+            <div
+              onPointerDown={handleDragStart}
+              className="w-7 h-7 rounded-full bg-white border-2 border-[#0071e3] shadow-xl flex items-center justify-center cursor-grab active:cursor-grabbing text-[#0071e3] hover:scale-110 transition-transform"
+              title="Giữ và kéo để di chuyển"
+            >
+              <Move className="w-3.5 h-3.5" />
+            </div>
+
+            {/* 360 Rotate Handle */}
+            <div
+              onPointerDown={handleRotateStart}
+              className="w-7 h-7 rounded-full bg-white border-2 border-[#0071e3] shadow-xl flex items-center justify-center cursor-grab active:cursor-grabbing text-[#0071e3] hover:scale-110 transition-transform"
+              title={`Xoay góc (Hiện tại: ${rotation}°)`}
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+            </div>
+
+            {/* Rotation Degree Badge */}
+            {rotation !== 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-[#161617]/90 text-[10px] font-mono text-white border border-white/20 shadow">
+                {rotation}°
+              </span>
+            )}
           </div>
         </>
       )}
@@ -260,26 +344,56 @@ export default function CanvaBoundingBox({
           opacity: style.opacity ?? 1,
           padding: style.padding || (type === 'badge' ? '6px 14px' : '4px')
         }}
-        className="w-full h-full overflow-hidden flex items-center justify-center transition-all"
+        className="w-full h-full overflow-hidden flex items-center justify-center transition-all pointer-events-auto"
       >
         {/* Text / Badge Display or Inline Editor */}
         {(type === 'text' || type === 'badge') && (
           isEditingText ? (
-            <input
-              ref={textInputRef}
-              type="text"
-              value={content}
-              onChange={(e) => onUpdateContent?.(id, e.target.value)}
-              onBlur={() => setIsEditingText(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') setIsEditingText(false);
-              }}
-              className="w-full bg-transparent outline-none border-b border-[#0071e3] text-inherit font-inherit text-center px-1"
-            />
+            <div
+              className="w-full flex flex-col gap-2 p-1 z-50 pointer-events-auto"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <textarea
+                ref={textInputRef}
+                value={content}
+                onChange={(e) => onUpdateContent?.(id, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    setIsEditingText(false);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingText(false);
+                  }
+                }}
+                rows={Math.max(2, (content || '').split('\n').length)}
+                className="w-full bg-[#161617]/95 text-white rounded-xl p-2.5 text-inherit font-inherit border-2 border-[#0071e3] outline-none shadow-2xl resize-none text-left"
+                placeholder="Nhập nội dung văn bản..."
+              />
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="text-[10px] text-[#86868b]">Ctrl+Enter để xong</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingText(false)}
+                  className="px-3 py-1 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] text-white text-[11px] font-semibold flex items-center gap-1 shadow cursor-pointer hover:scale-105 transition-all"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Xong</span>
+                </button>
+              </div>
+            </div>
           ) : (
-            <span className="w-full break-words leading-snug">
+            <div
+              className="w-full break-words leading-snug cursor-pointer"
+              onClick={(e) => {
+                if (isSelected) {
+                  e.stopPropagation();
+                  setIsEditingText(true);
+                }
+              }}
+              title={isSelected ? 'Nhấp để chỉnh sửa nội dung' : 'Nhấp chọn'}
+            >
               {content || (type === 'badge' ? 'Huy hiệu mới' : 'Nhập văn bản...')}
-            </span>
+            </div>
           )
         )}
 

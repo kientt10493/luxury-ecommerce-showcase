@@ -203,7 +203,7 @@ export default function CanvaDrawer({
   };
 
   return (
-    <div className="fixed inset-y-0 left-0 z-50 flex shadow-2xl animate-in slide-in-from-left duration-200">
+    <div data-canva-drawer="true" className="fixed inset-y-0 left-0 z-50 flex shadow-2xl animate-in slide-in-from-left duration-200">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-sm -z-10" 

@@ -8,8 +8,8 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
-  Layers,
-  Palette,
+  Edit3,
+  Image as ImageIcon,
   Minus,
   Plus,
   Sliders,
@@ -39,6 +39,8 @@ const BG_PRESETS = [
 export default function CanvaToolbar({
   element,
   onUpdateStyle,
+  onUpdateContent,
+  onStartEditing,
   onBringForward,
   onSendBackward,
   onDuplicate,
@@ -53,7 +55,6 @@ export default function CanvaToolbar({
   const isTextType = element.type === 'text' || element.type === 'badge';
   const fontSize = style.fontSize ?? (element.type === 'badge' ? 12 : 24);
   const currentColor = style.color || '#ffffff';
-  const currentBg = style.backgroundColor || 'transparent';
   const isBold = style.fontWeight === 'bold' || style.fontWeight === 700;
   const textAlign = style.textAlign || 'center';
   const opacity = Math.round((style.opacity ?? 1) * 100);
@@ -69,9 +70,24 @@ export default function CanvaToolbar({
 
   return (
     <div
+      data-canva-toolbar="true"
       onPointerDown={(e) => e.stopPropagation()}
-      className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#161617]/95 backdrop-blur-2xl border border-white/20 shadow-2xl text-xs text-white select-none whitespace-nowrap apple-animate-in"
+      onClick={(e) => e.stopPropagation()}
+      className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#161617]/95 backdrop-blur-2xl border border-white/20 shadow-2xl text-xs text-white select-none whitespace-nowrap pointer-events-auto apple-animate-in"
     >
+      {/* 0. Direct Edit Content Button for Text & Badge */}
+      {isTextType && (
+        <button
+          type="button"
+          onClick={() => onStartEditing?.()}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-semibold transition-all shadow-md cursor-pointer hover:scale-105"
+          title="Chỉnh sửa nội dung chữ"
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+          <span className="text-[11px]">Sửa chữ</span>
+        </button>
+      )}
+
       {/* 1. Typography Controls for Text / Badge */}
       {isTextType && (
         <>
@@ -225,6 +241,21 @@ export default function CanvaToolbar({
       {/* 2. Image Specific Controls */}
       {element.type === 'image' && (
         <div className="flex items-center gap-2 px-1">
+          <button
+            type="button"
+            onClick={() => {
+              const newUrl = prompt('Nhập URL hình ảnh mới:', element.content || '');
+              if (newUrl && newUrl.trim()) {
+                onUpdateContent?.(newUrl.trim());
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium transition-colors cursor-pointer"
+            title="Đổi link ảnh"
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Đổi ảnh</span>
+          </button>
+
           <div className="flex items-center gap-1.5 text-[11px] text-[#86868b]">
             <Sliders className="w-3 h-3" />
             <span>Mờ:</span>
@@ -263,7 +294,7 @@ export default function CanvaToolbar({
         {/* Layer Controls */}
         <button
           type="button"
-          onClick={onBringForward}
+          onClick={() => onBringForward?.(element.id)}
           className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[#86868b] hover:text-white transition-colors cursor-pointer"
           title="Đưa lên lớp trên (Bring Forward)"
         >
@@ -271,7 +302,7 @@ export default function CanvaToolbar({
         </button>
         <button
           type="button"
-          onClick={onSendBackward}
+          onClick={() => onSendBackward?.(element.id)}
           className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[#86868b] hover:text-white transition-colors cursor-pointer"
           title="Hạ xuống lớp dưới (Send Backward)"
         >
@@ -281,7 +312,7 @@ export default function CanvaToolbar({
         {/* Duplicate */}
         <button
           type="button"
-          onClick={onDuplicate}
+          onClick={() => onDuplicate?.(element.id)}
           className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[#2997ff] hover:text-white transition-colors cursor-pointer"
           title="Nhân bản (Ctrl+D)"
         >
@@ -291,11 +322,12 @@ export default function CanvaToolbar({
         {/* Delete */}
         <button
           type="button"
-          onClick={onDelete}
-          className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
-          title="Xóa phần tử (Delete)"
+          onClick={() => onDelete?.(element.id)}
+          className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer flex items-center gap-1"
+          title="Xóa đối tượng (Delete)"
         >
           <Trash2 className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-semibold text-rose-300">Xóa</span>
         </button>
       </div>
     </div>

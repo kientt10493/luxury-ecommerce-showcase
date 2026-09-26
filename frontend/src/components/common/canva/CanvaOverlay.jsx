@@ -154,7 +154,7 @@ export default function CanvaOverlay({
         // Nudge with Arrow keys: 1px or 10px (with Shift)
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
           e.preventDefault();
-          const step = e.shiftKey ? 10 : 1;
+          const step = e.shiftKey ? 10 : 2;
           const target = elementsRef.current.find((el) => el.id === selectedId);
           if (target) {
             saveSnapshot();
@@ -179,23 +179,53 @@ export default function CanvaOverlay({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEditMode, selectedId, handleUndo, handleRedo, saveSnapshot, onChangeElements]);
 
-  // 3. Canvas Element Modifiers
-  const handleUpdateTransform = (id, transform) => {
-    saveSnapshot();
-    const updated = elements.map((el) => (el.id === id ? { ...el, ...transform } : el));
+  // Click outside to deselect
+  useEffect(() => {
+    if (!isEditMode || !selectedId) return;
+
+    const handlePointerDownOutside = (e) => {
+      if (
+        e.target.closest('[data-canva-element]') ||
+        e.target.closest('[data-canva-drawer]') ||
+        e.target.closest('[data-canva-toolbar]') ||
+        e.target.closest('button') ||
+        e.target.closest('input') ||
+        e.target.closest('textarea')
+      ) {
+        return;
+      }
+      setSelectedId(null);
+    };
+
+    window.addEventListener('pointerdown', handlePointerDownOutside);
+    return () => window.removeEventListener('pointerdown', handlePointerDownOutside);
+  }, [isEditMode, selectedId]);
+
+  // 3. Canvas Element Modifiers (All defensively handling ID & snapshot control)
+  const handleUpdateTransform = (id, transform, recordSnapshot = true) => {
+    if (recordSnapshot) {
+      saveSnapshot();
+    }
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const updated = elements.map((el) => (el.id === targetId ? { ...el, ...transform } : el));
     onChangeElements?.(updated);
   };
 
   const handleUpdateContent = (id, newContent) => {
     saveSnapshot();
-    const updated = elements.map((el) => (el.id === id ? { ...el, content: newContent } : el));
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const updated = elements.map((el) => (el.id === targetId ? { ...el, content: newContent } : el));
     onChangeElements?.(updated);
   };
 
   const handleUpdateStyle = (id, styleDiff) => {
     saveSnapshot();
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
     const updated = elements.map((el) => {
-      if (el.id === id) {
+      if (el.id === targetId) {
         return {
           ...el,
           style: {
@@ -211,25 +241,31 @@ export default function CanvaOverlay({
 
   const handleBringForward = (id) => {
     saveSnapshot();
-    const target = elements.find((el) => el.id === id);
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const target = elements.find((el) => el.id === targetId);
     if (!target) return;
     const currentZ = target.zIndex || 35;
-    const updated = elements.map((el) => (el.id === id ? { ...el, zIndex: currentZ + 5 } : el));
+    const updated = elements.map((el) => (el.id === targetId ? { ...el, zIndex: currentZ + 5 } : el));
     onChangeElements?.(updated);
   };
 
   const handleSendBackward = (id) => {
     saveSnapshot();
-    const target = elements.find((el) => el.id === id);
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const target = elements.find((el) => el.id === targetId);
     if (!target) return;
     const currentZ = target.zIndex || 35;
-    const updated = elements.map((el) => (el.id === id ? { ...el, zIndex: Math.max(10, currentZ - 5) } : el));
+    const updated = elements.map((el) => (el.id === targetId ? { ...el, zIndex: Math.max(10, currentZ - 5) } : el));
     onChangeElements?.(updated);
   };
 
   const handleDuplicate = (id) => {
     saveSnapshot();
-    const target = elements.find((el) => el.id === id);
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const target = elements.find((el) => el.id === targetId);
     if (!target) return;
     const duplicated = {
       ...JSON.parse(JSON.stringify(target)),
@@ -245,39 +281,43 @@ export default function CanvaOverlay({
 
   const handleDelete = (id) => {
     saveSnapshot();
-    const filtered = elements.filter((el) => el.id !== id);
-    if (selectedId === id) setSelectedId(null);
+    const targetId = typeof id === 'string' ? id : selectedId;
+    if (!targetId) return;
+    const filtered = elements.filter((el) => el.id !== targetId);
+    if (selectedId === targetId) setSelectedId(null);
     onChangeElements?.(filtered);
+  };
+
+  // Helper to place new elements directly in current user viewport
+  const getInitialPosition = (width = 320) => {
+    const scrollY = window.scrollY || 0;
+    const mainRect = document.querySelector('main')?.getBoundingClientRect();
+    const mainTop = mainRect ? mainRect.top + scrollY : 0;
+    const relativeY = scrollY + window.innerHeight / 2 - mainTop - 60;
+    const relativeX = window.innerWidth / 2 - width / 2;
+
+    return {
+      x: Math.max(20, Math.min(window.innerWidth - width - 40, Math.round(relativeX))),
+      y: Math.max(50, Math.round(relativeY))
+    };
   };
 
   // 4. Asset Drawer Add Handlers
   const handleAddText = (variant) => {
     saveSnapshot();
-    const scrollY = window.scrollY || 0;
-    const viewportMiddleY = scrollY + window.innerHeight / 2 - 50;
-    const viewportMiddleX = window.innerWidth / 2 - 150;
-
-    let newElement = {
-      id: `text-${Date.now()}`,
-      type: 'text',
-      x: Math.max(20, viewportMiddleX),
-      y: Math.max(100, viewportMiddleY),
-      width: 320,
-      rotation: 0,
-      zIndex: 40,
-      content: 'Nhấp đúp để sửa chữ...',
-      style: {
-        fontSize: 16,
-        fontWeight: 'normal',
-        color: '#ffffff',
-        textAlign: 'left'
-      }
+    let width = 320;
+    let initialContent = 'Nhấp đúp hoặc bấm Sửa chữ để đổi nội dung...';
+    let initialStyle = {
+      fontSize: 16,
+      fontWeight: 'normal',
+      color: '#ffffff',
+      textAlign: 'left'
     };
 
     if (variant === 'h1') {
-      newElement.content = 'Tiêu Đề Đột Phá Mới';
-      newElement.width = 460;
-      newElement.style = {
+      width = 460;
+      initialContent = 'Tiêu Đề Đột Phá Mới';
+      initialStyle = {
         fontSize: 36,
         fontWeight: '700',
         color: '#f5f5f7',
@@ -285,18 +325,18 @@ export default function CanvaOverlay({
         letterSpacing: '-0.02em'
       };
     } else if (variant === 'h2') {
-      newElement.content = 'Trải nghiệm đỉnh cao công nghệ 2026';
-      newElement.width = 380;
-      newElement.style = {
+      width = 380;
+      initialContent = 'Trải nghiệm đỉnh cao công nghệ 2026';
+      initialStyle = {
         fontSize: 22,
         fontWeight: '600',
         color: '#a1a1a6',
         textAlign: 'left'
       };
     } else if (variant === 'quote') {
-      newElement.content = '“Sự tinh tế đạt tới mức độ tối giản hoàn mỹ.”';
-      newElement.width = 380;
-      newElement.style = {
+      width = 380;
+      initialContent = '“Sự tinh tế đạt tới mức độ tối giản hoàn mỹ.”';
+      initialStyle = {
         fontSize: 18,
         fontWeight: '500',
         color: '#fde047',
@@ -305,6 +345,20 @@ export default function CanvaOverlay({
       };
     }
 
+    const { x, y } = getInitialPosition(width);
+
+    const newElement = {
+      id: `text-${Date.now()}`,
+      type: 'text',
+      x,
+      y,
+      width,
+      rotation: 0,
+      zIndex: 40,
+      content: initialContent,
+      style: initialStyle
+    };
+
     const updated = [...elements, newElement];
     setSelectedId(newElement.id);
     onChangeElements?.(updated);
@@ -312,16 +366,15 @@ export default function CanvaOverlay({
 
   const handleAddBadge = (preset) => {
     saveSnapshot();
-    const scrollY = window.scrollY || 0;
-    const viewportMiddleY = scrollY + window.innerHeight / 2 - 30;
-    const viewportMiddleX = window.innerWidth / 2 - 130;
+    const width = 260;
+    const { x, y } = getInitialPosition(width);
 
     const newElement = {
       id: `badge-${Date.now()}`,
       type: 'badge',
-      x: Math.max(20, viewportMiddleX),
-      y: Math.max(100, viewportMiddleY),
-      width: 260,
+      x,
+      y,
+      width,
       rotation: 0,
       zIndex: 40,
       content: preset.content,
@@ -338,16 +391,15 @@ export default function CanvaOverlay({
 
   const handleAddImage = (imgUrl) => {
     saveSnapshot();
-    const scrollY = window.scrollY || 0;
-    const viewportMiddleY = scrollY + window.innerHeight / 2 - 100;
-    const viewportMiddleX = window.innerWidth / 2 - 120;
+    const width = 240;
+    const { x, y } = getInitialPosition(width);
 
     const newElement = {
       id: `img-${Date.now()}`,
       type: 'image',
-      x: Math.max(20, viewportMiddleX),
-      y: Math.max(100, viewportMiddleY),
-      width: 240,
+      x,
+      y,
+      width,
       height: 180,
       rotation: 0,
       zIndex: 38,
@@ -446,14 +498,11 @@ export default function CanvaOverlay({
   // IN EDIT MODE: Render interactive bounding boxes & asset drawer
   return (
     <>
-      {/* Click outside to deselect backdrop layer (pointer-events-none on root container, but element handles get pointer-events-auto) */}
+      {/* Visual Canvas Elements Layer */}
       <div 
-        className="absolute inset-0 z-35 pointer-events-none"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setSelectedId(null);
-          }
-        }}
+        data-canva-overlay="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{ zIndex: 40 }}
       >
         {elements.map((el) => (
           <CanvaBoundingBox
@@ -462,13 +511,14 @@ export default function CanvaOverlay({
             isSelected={selectedId === el.id}
             isEditMode={isEditMode}
             onSelect={(id) => setSelectedId(id)}
-            onUpdateTransform={(id, transform) => handleUpdateTransform(id, transform)}
-            onUpdateContent={(id, content) => handleUpdateContent(id, content)}
-            onUpdateStyle={(id, styleDiff) => handleUpdateStyle(id, styleDiff)}
-            onBringForward={(id) => handleBringForward(id)}
-            onSendBackward={(id) => handleSendBackward(id)}
-            onDuplicate={(id) => handleDuplicate(id)}
-            onDelete={(id) => handleDelete(id)}
+            onSaveSnapshot={saveSnapshot}
+            onUpdateTransform={handleUpdateTransform}
+            onUpdateContent={handleUpdateContent}
+            onUpdateStyle={handleUpdateStyle}
+            onBringForward={handleBringForward}
+            onSendBackward={handleSendBackward}
+            onDuplicate={handleDuplicate}
+            onDelete={handleDelete}
           />
         ))}
       </div>
