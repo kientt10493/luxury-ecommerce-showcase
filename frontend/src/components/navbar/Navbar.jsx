@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../../contexts/LanguageContext';
 import { useCurrency, SUPPORTED_CURRENCIES } from '../../contexts/CurrencyContext';
-import { ChevronDown, Shield, ShoppingBag } from 'lucide-react';
+import { ChevronDown, Shield, ShoppingBag, Pencil } from 'lucide-react';
 
 export default function Navbar({ 
   productName = "Aura Vision Pro", 
@@ -9,7 +9,9 @@ export default function Navbar({
   onOpenQuickBuy, 
   onNavigateAdmin, 
   onNavigateHome, 
-  isCurrentAdmin 
+  isCurrentAdmin,
+  onToggleLiveEdit,
+  isLiveEditActive = false
 }) {
   const { language, setLanguage, t, isRTL } = useLanguage();
   const { currency, setCurrency, getCurrencyMeta } = useCurrency();
@@ -120,6 +122,24 @@ export default function Navbar({
                 </div>
               )}
             </div>
+
+            {/* Live Edit Mode Button */}
+            {!isCurrentAdmin && onToggleLiveEdit && (
+              <button
+                onClick={onToggleLiveEdit}
+                title="Chỉnh sửa nội dung trực tiếp như Word"
+                className={`px-3 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isLiveEditActive
+                    ? 'bg-[#0071e3] text-white shadow-md'
+                    : 'bg-white/5 hover:bg-white/10 text-[#a1a1a6] hover:text-[#f5f5f7] border border-white/10'
+                }`}
+              >
+                <Pencil className="w-3 h-3 text-[#2997ff]" />
+                <span className="hidden sm:inline">
+                  {isLiveEditActive ? 'Đang Sửa Trực Tiếp' : 'Sửa Trực Tiếp (Word)'}
+                </span>
+              </button>
+            )}
 
             {/* Admin Portal Shortcut */}
             <button

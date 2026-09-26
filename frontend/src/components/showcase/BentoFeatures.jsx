@@ -1,8 +1,14 @@
 import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Eye, Cpu, Headphones, Shield, Sparkles, Zap, Layers, CheckCircle2, Award } from 'lucide-react';
+import EditableText from '../common/EditableText';
 
-export default function BentoFeatures({ product }) {
+export default function BentoFeatures({ 
+  product,
+  isEditMode = false,
+  onUpdateFeature,
+  onUpdateField
+}) {
   const { t } = useLanguage();
 
   if (!product) return null;
@@ -39,7 +45,7 @@ export default function BentoFeatures({ product }) {
           </p>
         </div>
 
-        {/* Dynamic Apple Bento Grid */}
+        {/* Dynamic Apple Bento Grid with In-Place WYSIWYG Editing */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           
           {/* Bento Card 1: Main Flagship Breakthrough (Large 8 Cols) */}
@@ -52,12 +58,27 @@ export default function BentoFeatures({ product }) {
               <div className="text-xs uppercase tracking-wider text-[#2997ff] font-semibold">
                 {product.name}
               </div>
-              <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                {feature1}
-              </h3>
-              <p className="text-[#86868b] text-base leading-relaxed font-normal">
-                {product.description || t('bento.subtitle')}
-              </p>
+
+              <div>
+                <EditableText
+                  value={feature1}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateFeature?.(0, val)}
+                  as="h3"
+                  className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight"
+                />
+              </div>
+
+              <div>
+                <EditableText
+                  value={product.description || t('bento.subtitle')}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateField?.('description', val)}
+                  as="p"
+                  multiline={true}
+                  className="text-[#86868b] text-base leading-relaxed font-normal"
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-[#a1a1a6] font-mono border-t border-white/5 pt-4">
@@ -77,9 +98,15 @@ export default function BentoFeatures({ product }) {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold tracking-tight text-white leading-snug">
-                {feature2}
-              </h3>
+              <div>
+                <EditableText
+                  value={feature2}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateFeature?.(1, val)}
+                  as="h3"
+                  className="text-2xl font-bold tracking-tight text-white leading-snug"
+                />
+              </div>
               <p className="text-[#86868b] text-sm leading-relaxed">
                 {specEntries[0] 
                   ? `Engineered with ${specEntries[0][0]}: ${specEntries[0][1]} for uncompromised fidelity.` 
@@ -99,9 +126,15 @@ export default function BentoFeatures({ product }) {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold tracking-tight text-white leading-snug">
-                {feature3}
-              </h3>
+              <div>
+                <EditableText
+                  value={feature3}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateFeature?.(2, val)}
+                  as="h3"
+                  className="text-2xl font-bold tracking-tight text-white leading-snug"
+                />
+              </div>
               <p className="text-[#86868b] text-sm leading-relaxed">
                 {specEntries[1]
                   ? `Advanced integration featuring ${specEntries[1][0]}: ${specEntries[1][1]}.`
@@ -121,9 +154,15 @@ export default function BentoFeatures({ product }) {
             </div>
 
             <div className="space-y-4 max-w-lg">
-              <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                {feature4}
-              </h3>
+              <div>
+                <EditableText
+                  value={feature4}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateFeature?.(3, val)}
+                  as="h3"
+                  className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight"
+                />
+              </div>
               <p className="text-[#86868b] text-base leading-relaxed font-normal">
                 {specEntries[2]
                   ? `Every component conforms to the highest industrial specifications, combining ${specEntries[2][0]}: ${specEntries[2][1]} with aerospace-grade durability.`

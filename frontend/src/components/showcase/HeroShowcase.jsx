@@ -2,8 +2,16 @@ import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { ChevronRight, Truck, ShieldCheck } from 'lucide-react';
+import EditableText from '../common/EditableText';
 
-export default function HeroShowcase({ product, allProducts = [], onSelectProduct, onQuickBuy }) {
+export default function HeroShowcase({ 
+  product, 
+  allProducts = [], 
+  onSelectProduct, 
+  onQuickBuy,
+  isEditMode = false,
+  onUpdateField
+}) {
   const { t, isRTL } = useLanguage();
   const { formatPrice } = useCurrency();
 
@@ -50,19 +58,37 @@ export default function HeroShowcase({ product, allProducts = [], onSelectProduc
             {t('hero.eyebrow')}
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-[#f5f5f7] leading-[1.05]">
-            {product.name}
-          </h1>
+          <div>
+            <EditableText
+              value={product.name}
+              isEditing={isEditMode}
+              onChange={(val) => onUpdateField?.('name', val)}
+              as="h1"
+              className="text-5xl sm:text-7xl font-bold tracking-tight text-[#f5f5f7] leading-[1.05]"
+            />
+          </div>
 
-          <p className="text-xl sm:text-2xl text-[#86868b] font-normal leading-relaxed max-w-2xl mx-auto">
-            {product.tagline}
-          </p>
+          <div>
+            <EditableText
+              value={product.tagline}
+              isEditing={isEditMode}
+              onChange={(val) => onUpdateField?.('tagline', val)}
+              as="p"
+              className="text-xl sm:text-2xl text-[#86868b] font-normal leading-relaxed max-w-2xl mx-auto"
+            />
+          </div>
 
-          {product.description && (
-            <p className="text-sm sm:text-base text-[#a1a1a6] font-normal leading-relaxed max-w-2xl mx-auto pt-1">
-              {product.description}
-            </p>
-          )}
+          <div>
+            <EditableText
+              value={product.description || ''}
+              isEditing={isEditMode}
+              onChange={(val) => onUpdateField?.('description', val)}
+              as="p"
+              multiline={true}
+              placeholder="Nhấp để thêm đoạn văn giới thiệu sản phẩm..."
+              className="text-sm sm:text-base text-[#a1a1a6] font-normal leading-relaxed max-w-2xl mx-auto pt-1"
+            />
+          </div>
 
           {/* Pricing Tag */}
           <div className="pt-2 text-base text-[#86868b] flex items-center justify-center gap-2">
