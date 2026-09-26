@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Save, RotateCcw, X, Check, Loader2, Sparkles, AlertCircle, ImagePlus, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Save, RotateCcw, X, Check, Loader2, Sparkles, AlertCircle, ImagePlus, ArrowUpDown, ChevronUp, ChevronDown, Undo2, Redo2 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function LiveEditorBar({
@@ -10,8 +10,14 @@ export default function LiveEditorBar({
   onReset,
   onExit,
   onAddFloatingImage,
+  onAddFloatingImageFile,
   sectionOrder = ['hero', 'configurator', 'bento', 'specs'],
-  onMoveSection
+  onMoveSection,
+  onOpenCanvaDrawer,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false
 }) {
   const { language } = useLanguage();
   const fileInputRef = useRef(null);
@@ -29,11 +35,15 @@ export default function LiveEditorBar({
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        onAddFloatingImage?.(event.target.result);
-      };
-      reader.readAsDataURL(file);
+      if (onAddFloatingImageFile) {
+        onAddFloatingImageFile(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          onAddFloatingImage?.(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
     e.target.value = '';
   };
@@ -65,8 +75,48 @@ export default function LiveEditorBar({
             </span>
           </div>
 
-          {/* Quick Tools: Add Image & Section Order */}
+          {/* Quick Tools: Canva Studio, Undo/Redo, Add Image & Section Order */}
           <div className="flex items-center gap-2 border-l border-r border-white/10 px-3">
+            {/* Canva Studio Drawer Button */}
+            <button
+              onClick={onOpenCanvaDrawer}
+              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-blue-500/25 border border-blue-400/30 cursor-pointer"
+              title="Mở Canva Studio: Thêm chữ H1/H2, huy hiệu luxury hoặc ảnh"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span className="font-semibold">Canva Studio</span>
+            </button>
+
+            {/* Undo / Redo Shortcuts */}
+            <div className="flex items-center gap-1 bg-[#2c2c2e] p-0.5 rounded-full border border-white/5">
+              <button
+                type="button"
+                onClick={onUndo}
+                disabled={!canUndo}
+                className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
+                  canUndo
+                    ? 'text-white hover:bg-white/15 cursor-pointer'
+                    : 'text-neutral-500 cursor-not-allowed opacity-40'
+                }`}
+                title="Hoàn tác (Ctrl+Z)"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onRedo}
+                disabled={!canRedo}
+                className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
+                  canRedo
+                    ? 'text-white hover:bg-white/15 cursor-pointer'
+                    : 'text-neutral-500 cursor-not-allowed opacity-40'
+                }`}
+                title="Làm lại (Ctrl+Y)"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-3 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#f5f5f7] text-xs transition-colors flex items-center gap-1.5 cursor-pointer border border-white/5"

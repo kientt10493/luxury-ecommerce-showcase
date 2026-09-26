@@ -11,7 +11,8 @@ import QuickBuyModal from '../components/checkout/QuickBuyModal';
 import VietQRModal from '../components/checkout/VietQRModal';
 import LiveEditorBar from '../components/navbar/LiveEditorBar';
 import DraggableFloatingImage from '../components/common/DraggableFloatingImage';
-import { Loader2, Shield, X, Key } from 'lucide-react';
+import CanvaOverlay from '../components/common/canva/CanvaOverlay';
+import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { language, t } = useLanguage();
@@ -35,6 +36,16 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   // Drag & drop floating images and section ordering state
   const [floatingImages, setFloatingImages] = useState([]);
   const [sectionOrder, setSectionOrder] = useState(['hero', 'configurator', 'bento', 'specs']);
+
+  // Canva Studio visual canvas elements state
+  const [canvasElements, setCanvasElements] = useState([]);
+  const [isCanvaDrawerOpen, setIsCanvaDrawerOpen] = useState(false);
+  const [canvaHistory, setCanvaHistory] = useState({
+    canUndo: false,
+    canRedo: false,
+    undo: () => {},
+    redo: () => {}
+  });
 
   // Modals state
   const [quickBuyOpen, setQuickBuyOpen] = useState(false);
@@ -76,6 +87,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             setSectionOrder(prodData.specifications.section_order);
           } else {
             setSectionOrder(['hero', 'configurator', 'bento', 'specs']);
+          }
+          if (prodData.specifications?.canvas_elements) {
+            setCanvasElements(prodData.specifications.canvas_elements);
+          } else {
+            setCanvasElements([]);
           }
         }
         setLoading(false);
@@ -185,11 +201,29 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     handleUpdateFeature(index, val);
   };
 
-  // Floating Image Handlers
-  const handleAddFloatingImage = (dataUrl) => {
+  // Upload and Image Handlers
+  const handleUpdateHeroImageFile = async (file) => {
+    if (!activeProduct) return;
+    try {
+      const res = await adminApi.uploadImage(file);
+      if (res.data?.url) {
+        handleUpdateHeroImage(res.data.url);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend upload failed, falling back to data URL:', err);
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      handleUpdateHeroImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddFloatingImage = (srcUrl) => {
     const newImg = {
       id: `float-${Date.now()}`,
-      src: dataUrl,
+      src: srcUrl,
       x: Math.min(window.innerWidth - 260, 40 + floatingImages.length * 30),
       y: 160 + floatingImages.length * 40,
       width: 220,
@@ -197,6 +231,23 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     };
     setFloatingImages((prev) => [...prev, newImg]);
     setHasChanges(true);
+  };
+
+  const handleAddFloatingImageFile = async (file) => {
+    try {
+      const res = await adminApi.uploadImage(file);
+      if (res.data?.url) {
+        handleAddFloatingImage(res.data.url);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend upload failed, falling back to data URL:', err);
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      handleAddFloatingImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpdateFloatingImagePosition = (id, x, y) => {
@@ -218,6 +269,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setHasChanges(true);
   };
 
+  // Canva Studio elements change handler
+  const handleCanvasElementsChange = (newElements) => {
+    setCanvasElements(newElements);
+    setHasChanges(true);
+  };
+
   // Section Ordering Handler
   const handleMoveSection = (fromIdx, toIdx) => {
     const list = [...sectionOrder];
@@ -232,61 +289,124 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     if (!activeProduct) return;
     setIsSaving(true);
     try {
-      const res = await adminApi.getProduct(activeProduct.id);
-      const fullData = res.data;
+      const token = localStorage.getItem('aura_admin_token');
+      if (!token) {
+        setShowAuthModal(true);
+        setIsSaving(false);
+        return;
+      }
+
+      // 1. Fetch latest product full details
+      let fullData = null;
+      try {
+        const res = await adminApi.getProduct(activeProduct.id);
+        fullData = res.data;
+      } catch (fetchErr) {
+        if (fetchErr.response?.status === 401) {
+          localStorage.removeItem('aura_admin_token');
+          setShowAuthModal(true);
+          setIsSaving(false);
+          alert('Phiên làm việc quản trị đã hết hạn. Vui lòng đăng nhập lại mật khẩu quản trị.');
+          return;
+        }
+        throw fetchErr;
+      }
+
+      const existingTranslations = fullData.translations || {};
+      const currentLangTrans = existingTranslations[language] || {};
 
       const updatedTranslations = {
-        ...fullData.translations,
+        ...existingTranslations,
         [language]: {
+          ...currentLangTrans,
           name: activeProduct.name,
-          tagline: activeProduct.tagline,
-          description: activeProduct.description,
-          features: (activeProduct.features || []).join('\n')
+          tagline: activeProduct.tagline || '',
+          description: activeProduct.description || '',
+          features: Array.isArray(activeProduct.features)
+            ? activeProduct.features
+            : (activeProduct.features || '').split('\n').filter(Boolean)
         }
       };
 
-      const baseSpecs = fullData.specifications || {};
+      // Base specs preserving existing technical specifications
+      const baseSpecs = fullData.specifications || currentLangTrans.specifications || activeProduct.specifications || {};
       const updatedSpecs = {
         ...baseSpecs,
         floating_images: floatingImages,
-        section_order: sectionOrder
+        section_order: sectionOrder,
+        canvas_elements: canvasElements
       };
 
+      // Construct clean payload strictly conforming to ProductCreateRequest schema
       const payload = {
-        slug: fullData.slug,
-        images: activeProduct.images || fullData.images,
-        is_featured: fullData.is_featured,
+        slug: fullData.slug || activeProduct.slug,
+        images: activeProduct.images || fullData.images || [],
+        is_featured: fullData.is_featured ?? true,
         is_active: true,
-        translations: ['en', 'vi', 'ar'].map((langKey) => ({
-          language: langKey,
-          name: updatedTranslations[langKey]?.name || fullData.slug,
-          tagline: updatedTranslations[langKey]?.tagline || '',
-          description: updatedTranslations[langKey]?.description || '',
-          features: typeof updatedTranslations[langKey]?.features === 'string'
-            ? updatedTranslations[langKey]?.features.split('\n').filter(Boolean)
-            : (updatedTranslations[langKey]?.features || []),
-          specifications: updatedSpecs
-        })),
-        variants: [
-          {
-            sku: fullData.variant.sku,
-            attributes: { color: fullData.variant.color, storage: fullData.variant.storage },
-            stock_quantity: Number(fullData.variant.stock),
-            prices: [
-              { currency: 'USD', price: Number(fullData.variant.price_usd) },
-              { currency: 'VND', price: Number(fullData.variant.price_vnd) },
-              { currency: 'SAR', price: Number(fullData.variant.price_sar) }
-            ]
+        translations: ['en', 'vi', 'ar'].map((langKey) => {
+          const tData = updatedTranslations[langKey] || {};
+          let feats = tData.features;
+          if (typeof feats === 'string') {
+            feats = feats.split('\n').filter(Boolean);
+          } else if (!Array.isArray(feats)) {
+            feats = [];
           }
-        ]
+          return {
+            language: langKey,
+            name: tData.name || activeProduct.name || fullData.slug,
+            tagline: tData.tagline || '',
+            description: tData.description || '',
+            features: feats,
+            specifications: updatedSpecs
+          };
+        }),
+        variants: (fullData.variants && fullData.variants.length > 0)
+          ? fullData.variants.map((v) => ({
+              sku: v.sku,
+              attributes: v.attributes || {},
+              attribute_translations: v.attribute_translations || {},
+              stock_quantity: Number(v.stock_quantity ?? 10),
+              variant_image: v.variant_image,
+              is_active: v.is_active ?? true,
+              prices: (v.prices && v.prices.length > 0)
+                ? v.prices.map((p) => ({
+                    currency: p.currency,
+                    price: Number(p.price),
+                    compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null
+                  }))
+                : [
+                    { currency: 'USD', price: 1299.0 },
+                    { currency: 'VND', price: 32500000.0 },
+                    { currency: 'SAR', price: 4870.0 }
+                  ]
+            }))
+          : [
+              {
+                sku: fullData.variant?.sku || `${fullData.slug}-DEFAULT`,
+                attributes: {
+                  color: fullData.variant?.color || 'Space Gray',
+                  storage: fullData.variant?.storage || '512GB'
+                },
+                stock_quantity: Number(fullData.variant?.stock || 10),
+                prices: [
+                  { currency: 'USD', price: Number(fullData.variant?.price_usd || 1299) },
+                  { currency: 'VND', price: Number(fullData.variant?.price_vnd || 32500000) },
+                  { currency: 'SAR', price: Number(fullData.variant?.price_sar || 4870) }
+                ]
+              }
+            ]
       };
 
       await adminApi.updateProduct(activeProduct.id, payload);
       setHasChanges(false);
-      alert('✅ Đã lưu trực tiếp toàn bộ nội dung, vị trí ảnh và thứ tự khối thành công lên website!');
+      alert('✅ Đã lưu trực tiếp toàn bộ nội dung, ảnh tải lên và vị trí các khối thành công vào cơ sở dữ liệu!');
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.detail || 'Không thể lưu thay đổi trực tiếp. Vui lòng thử lại.');
+      console.error('Error saving live edits:', err);
+      const detailMsg = err.response?.data?.detail;
+      const msg = typeof detailMsg === 'string'
+        ? detailMsg
+        : (Array.isArray(detailMsg) ? detailMsg.map(d => `${d.loc?.join('.')}: ${d.msg}`).join(', ') : 'Không thể lưu thay đổi trực tiếp. Vui lòng kiểm tra lại kết nối backend.');
+      alert(`⚠️ Không thể lưu: ${msg}`);
     } finally {
       setIsSaving(false);
     }
@@ -303,6 +423,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           }
           if (res.data.specifications?.section_order) {
             setSectionOrder(res.data.specifications.section_order);
+          }
+          if (res.data.specifications?.canvas_elements) {
+            setCanvasElements(res.data.specifications.canvas_elements);
+          } else {
+            setCanvasElements([]);
           }
           setHasChanges(false);
           setLoading(false);
@@ -348,52 +473,118 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         </div>
       ) : (
         <main className="relative">
-          {/* Dynamic Section Ordering */}
-          {sectionOrder.map((sectionKey) => {
+          {/* Canva Studio Visual Overlay */}
+          <CanvaOverlay
+            elements={canvasElements}
+            onChangeElements={handleCanvasElementsChange}
+            isEditMode={isEditMode}
+            isDrawerOpen={isCanvaDrawerOpen}
+            onCloseDrawer={() => setIsCanvaDrawerOpen(false)}
+            onOpenDrawer={() => setIsCanvaDrawerOpen(true)}
+            onHistoryStateChange={(state) => setCanvaHistory(state)}
+          />
+
+          {/* Dynamic Section Ordering with Direct Visual Controls */}
+          {sectionOrder.map((sectionKey, secIndex) => {
+            const sectionLabels = {
+              hero: '1. Khối Giới Thiệu Hero Showcase',
+              configurator: '2. Trình Chọn Cấu Hình & Mua Hàng',
+              bento: '3. Thẻ Đột Phá Bento Highlights',
+              specs: '4. Bảng Thông Số Kỹ Thuật Tech Specs'
+            };
+
+            const renderSectionControl = () => {
+              if (!isEditMode) return null;
+              return (
+                <div className="sticky top-24 z-30 max-w-5xl mx-auto px-4 pt-3 pb-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 rounded-2xl bg-[#161617]/95 backdrop-blur-xl border border-[#0071e3]/40 shadow-2xl ring-1 ring-[#0071e3]/20 text-xs text-white">
+                    <div className="flex items-center gap-2 font-semibold text-[#2997ff]">
+                      <Layers className="w-4 h-4" />
+                      <span>Vị trí #{secIndex + 1}: {sectionLabels[sectionKey] || sectionKey}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {secIndex > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSection(secIndex, secIndex - 1)}
+                          className="px-3 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white flex items-center gap-1.5 transition-all cursor-pointer font-medium shadow"
+                          title="Đổi chỗ đưa khối này lên trên"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                          <span>Dời lên trên</span>
+                        </button>
+                      )}
+                      {secIndex < sectionOrder.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveSection(secIndex, secIndex + 1)}
+                          className="px-3 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white flex items-center gap-1.5 transition-all cursor-pointer font-medium shadow"
+                          title="Đổi chỗ đưa khối này xuống dưới"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                          <span>Dời xuống dưới</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
             if (sectionKey === 'hero') {
               return (
-                <HeroShowcase
-                  key="hero"
-                  product={activeProduct}
-                  allProducts={products}
-                  onSelectProduct={handleSelectProduct}
-                  onQuickBuy={(p) => handleOpenQuickBuy(p)}
-                  isEditMode={isEditMode}
-                  onUpdateField={handleUpdateField}
-                  onUpdateImage={handleUpdateHeroImage}
-                  onUpdateBadge={handleUpdateBadge}
-                />
+                <div key="hero" className="relative group/sec">
+                  {renderSectionControl()}
+                  <HeroShowcase
+                    product={activeProduct}
+                    allProducts={products}
+                    onSelectProduct={handleSelectProduct}
+                    onQuickBuy={(p) => handleOpenQuickBuy(p)}
+                    isEditMode={isEditMode}
+                    onUpdateField={handleUpdateField}
+                    onUpdateImage={handleUpdateHeroImage}
+                    onUpdateImageFile={handleUpdateHeroImageFile}
+                    onUpdateBadge={handleUpdateBadge}
+                  />
+                </div>
               );
             }
 
             if (sectionKey === 'configurator' && activeProduct) {
               return (
-                <VariantPicker
-                  key="configurator"
-                  product={activeProduct}
-                  selectedVariant={selectedVariant}
-                  onSelectVariant={setSelectedVariant}
-                  onBuyNow={(p, v) => handleOpenQuickBuy(p, v)}
-                />
+                <div key="configurator" className="relative group/sec">
+                  {renderSectionControl()}
+                  <VariantPicker
+                    product={activeProduct}
+                    selectedVariant={selectedVariant}
+                    onSelectVariant={setSelectedVariant}
+                    onBuyNow={(p, v) => handleOpenQuickBuy(p, v)}
+                  />
+                </div>
               );
             }
 
             if (sectionKey === 'bento' && activeProduct) {
               return (
-                <BentoFeatures 
-                  key="bento"
-                  product={activeProduct} 
-                  isEditMode={isEditMode}
-                  onUpdateFeature={handleUpdateFeature}
-                  onUpdateField={handleUpdateField}
-                  onReorderFeatures={handleReorderFeatures}
-                />
+                <div key="bento" className="relative group/sec">
+                  {renderSectionControl()}
+                  <BentoFeatures 
+                    product={activeProduct} 
+                    isEditMode={isEditMode}
+                    onUpdateFeature={handleUpdateFeature}
+                    onUpdateField={handleUpdateField}
+                    onReorderFeatures={handleReorderFeatures}
+                  />
+                </div>
               );
             }
 
             if (sectionKey === 'specs' && activeProduct) {
               return (
-                <TechSpecs key="specs" product={activeProduct} />
+                <div key="specs" className="relative group/sec">
+                  {renderSectionControl()}
+                  <TechSpecs product={activeProduct} />
+                </div>
               );
             }
 
@@ -423,8 +614,14 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         onReset={handleReset}
         onExit={() => setIsEditMode(false)}
         onAddFloatingImage={handleAddFloatingImage}
+        onAddFloatingImageFile={handleAddFloatingImageFile}
         sectionOrder={sectionOrder}
         onMoveSection={handleMoveSection}
+        onOpenCanvaDrawer={() => setIsCanvaDrawerOpen(true)}
+        onUndo={canvaHistory.undo}
+        onRedo={canvaHistory.redo}
+        canUndo={canvaHistory.canUndo}
+        canRedo={canvaHistory.canRedo}
       />
 
       {/* Apple Iconic Footer */}
