@@ -1,13 +1,14 @@
 import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Eye, Cpu, Headphones, Shield, Sparkles, Zap, Layers, CheckCircle2, Award } from 'lucide-react';
+import { Eye, Cpu, Headphones, Shield, Sparkles, Zap, Layers, CheckCircle2, Award, GripVertical, ArrowLeftRight } from 'lucide-react';
 import EditableText from '../common/EditableText';
 
 export default function BentoFeatures({ 
   product,
   isEditMode = false,
   onUpdateFeature,
-  onUpdateField
+  onUpdateField,
+  onReorderFeatures
 }) {
   const { t } = useLanguage();
 
@@ -28,6 +29,58 @@ export default function BentoFeatures({
     ? specEntries.slice(0, 3).map(([key, val]) => `${key}: ${val}`)
     : ['Precision Engineered', 'Apple Quality Standard', 'Tested & Certified'];
 
+  const renderCardToolbar = (index) => {
+    if (!isEditMode) return null;
+    return (
+      <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/10 text-[11px] text-[#86868b] w-full">
+        <div className="flex items-center gap-1 font-semibold text-[#2997ff]">
+          <GripVertical className="w-3.5 h-3.5 cursor-grab" />
+          <span>Kéo thẻ #{index + 1}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {index > 0 && (
+            <button
+              type="button"
+              onClick={() => onReorderFeatures?.(index, index - 1)}
+              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-colors cursor-pointer text-[10px]"
+              title="Đổi chỗ với thẻ trước"
+            >
+              ◀ Đổi vị trí
+            </button>
+          )}
+          {index < 3 && (
+            <button
+              type="button"
+              onClick={() => onReorderFeatures?.(index, index + 1)}
+              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-colors cursor-pointer text-[10px]"
+              title="Đổi chỗ với thẻ sau"
+            >
+              Đổi vị trí ▶
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const makeDragProps = (index) => ({
+    draggable: isEditMode,
+    onDragStart: (e) => {
+      e.dataTransfer.setData('text/plain', String(index));
+    },
+    onDragOver: (e) => {
+      if (isEditMode) e.preventDefault();
+    },
+    onDrop: (e) => {
+      if (!isEditMode) return;
+      e.preventDefault();
+      const src = Number(e.dataTransfer.getData('text/plain'));
+      if (!isNaN(src) && src !== index) {
+        onReorderFeatures?.(src, index);
+      }
+    }
+  });
+
   return (
     <section id="innovations" className="py-24 px-4 sm:px-6 lg:px-8 bg-black text-start">
       <div className="max-w-5xl mx-auto space-y-16">
@@ -45,11 +98,18 @@ export default function BentoFeatures({
           </p>
         </div>
 
-        {/* Dynamic Apple Bento Grid with In-Place WYSIWYG Editing */}
+        {/* Dynamic Apple Bento Grid with Drag & Drop Reordering */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           
           {/* Bento Card 1: Main Flagship Breakthrough (Large 8 Cols) */}
-          <div className="md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border border-[#2d2d30] hover:border-[#424245] transition-all flex flex-col justify-between space-y-8 group shadow-xl">
+          <div 
+            {...makeDragProps(0)}
+            className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 group shadow-xl ${
+              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+            }`}
+          >
+            {renderCardToolbar(0)}
+
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#2997ff]">
               <Sparkles className="w-6 h-6" />
             </div>
@@ -92,7 +152,14 @@ export default function BentoFeatures({
           </div>
 
           {/* Bento Card 2: Computational Silicon / Architecture (4 Cols) */}
-          <div className="md:col-span-4 p-8 rounded-[32px] bg-[#161617] border border-[#2d2d30] hover:border-[#424245] transition-all flex flex-col justify-between space-y-6 shadow-xl">
+          <div 
+            {...makeDragProps(1)}
+            className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
+              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+            }`}
+          >
+            {renderCardToolbar(1)}
+
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#ff9f0a]">
               <Cpu className="w-6 h-6" />
             </div>
@@ -120,7 +187,14 @@ export default function BentoFeatures({
           </div>
 
           {/* Bento Card 3: Sensory & Telemetry (4 Cols) */}
-          <div className="md:col-span-4 p-8 rounded-[32px] bg-[#161617] border border-[#2d2d30] hover:border-[#424245] transition-all flex flex-col justify-between space-y-6 shadow-xl">
+          <div 
+            {...makeDragProps(2)}
+            className={`md:col-span-4 p-8 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
+              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+            }`}
+          >
+            {renderCardToolbar(2)}
+
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#30d158]">
               <Zap className="w-6 h-6" />
             </div>
@@ -148,7 +222,14 @@ export default function BentoFeatures({
           </div>
 
           {/* Bento Card 4: Materials & Craftsmanship (Large 8 Cols) */}
-          <div className="md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border border-[#2d2d30] hover:border-[#424245] transition-all flex flex-col justify-between space-y-8 shadow-xl">
+          <div 
+            {...makeDragProps(3)}
+            className={`md:col-span-8 p-8 sm:p-10 rounded-[32px] bg-[#161617] border transition-all flex flex-col justify-between space-y-6 shadow-xl ${
+              isEditMode ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]' : 'border-[#2d2d30]'
+            }`}
+          >
+            {renderCardToolbar(3)}
+
             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#bf5af2]">
               <Shield className="w-6 h-6" />
             </div>

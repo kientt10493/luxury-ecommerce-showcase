@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { ChevronRight, Truck, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Truck, ShieldCheck, Upload } from 'lucide-react';
 import EditableText from '../common/EditableText';
 
 export default function HeroShowcase({ 
@@ -10,10 +10,14 @@ export default function HeroShowcase({
   onSelectProduct, 
   onQuickBuy,
   isEditMode = false,
-  onUpdateField
+  onUpdateField,
+  onUpdateImage,
+  onUpdateBadge
 }) {
   const { t, isRTL } = useLanguage();
   const { formatPrice } = useCurrency();
+  const fileInputRef = useRef(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   if (!product) return null;
 
@@ -121,24 +125,95 @@ export default function HeroShowcase({
 
         </div>
 
-        {/* Hero Dramatic Visual (Floating Hardware Display) */}
+        {/* Hero Dramatic Visual (Floating Hardware Display with Direct Upload & Dropzone) */}
         <div className="relative pt-6 max-w-4xl mx-auto flex items-center justify-center">
           
-          {/* Floor reflection effect */}
-          <div className="relative w-full aspect-[16/10] max-h-[520px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#111113] to-[#050505] border border-[#2d2d30] p-4 sm:p-8 flex items-center justify-center shadow-2xl group">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  onUpdateImage?.(event.target.result);
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+          />
+
+          {/* Floor reflection effect & Dropzone */}
+          <div 
+            onDragOver={(e) => {
+              if (!isEditMode) return;
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              if (!isEditMode) return;
+              e.preventDefault();
+              setIsDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  onUpdateImage?.(event.target.result);
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+            className={`relative w-full aspect-[16/10] max-h-[520px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#111113] to-[#050505] border transition-all p-4 sm:p-8 flex items-center justify-center shadow-2xl group ${
+              isDragOver
+                ? 'border-[#0071e3] border-dashed ring-4 ring-[#0071e3]/30 scale-[1.01]'
+                : isEditMode
+                ? 'border-[#0071e3]/40 border-dashed hover:border-[#0071e3]'
+                : 'border-[#2d2d30]'
+            }`}
+          >
             <img
               src={mainImage}
               alt={product.name}
               className="w-full h-full object-contain rounded-2xl transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             />
 
+            {/* In Edit Mode: Upload Button Overlay */}
+            {isEditMode && (
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="apple-btn-blue px-6 py-2.5 text-xs font-semibold flex items-center gap-2 shadow-2xl cursor-pointer"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Tải ảnh từ máy tính (hoặc Kéo Thả File vào đây)</span>
+                </button>
+                <span className="text-[11px] text-[#a1a1a6]">
+                  Hỗ trợ PNG, JPG, WebP với độ phân giải cao
+                </span>
+              </div>
+            )}
+
             {/* Dynamic Apple Floating Badges */}
             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none gap-2">
-              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%]">
-                {product.features?.[0] || Object.values(product.specifications || {})[0] || product.name}
+              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
+                <EditableText
+                  value={product.features?.[0] || Object.values(product.specifications || {})[0] || product.name}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateBadge?.(0, val)}
+                  as="span"
+                />
               </div>
-              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%]">
-                {product.features?.[1] || Object.values(product.specifications || {})[1] || 'Precision Craft'}
+              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
+                <EditableText
+                  value={product.features?.[1] || Object.values(product.specifications || {})[1] || 'Precision Craft'}
+                  isEditing={isEditMode}
+                  onChange={(val) => onUpdateBadge?.(1, val)}
+                  as="span"
+                />
               </div>
             </div>
           </div>

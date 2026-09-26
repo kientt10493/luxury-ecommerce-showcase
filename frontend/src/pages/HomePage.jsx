@@ -10,6 +10,7 @@ import TechSpecs from '../components/showcase/TechSpecs';
 import QuickBuyModal from '../components/checkout/QuickBuyModal';
 import VietQRModal from '../components/checkout/VietQRModal';
 import LiveEditorBar from '../components/navbar/LiveEditorBar';
+import DraggableFloatingImage from '../components/common/DraggableFloatingImage';
 import { Loader2, Shield, X, Key } from 'lucide-react';
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
@@ -22,7 +23,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Live Edit Mode state (Word-style in-place editing)
+  // Live Edit Mode state (Word-style in-place editing & Drag-and-drop)
   const [isEditMode, setIsEditMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +31,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [adminUsername, setAdminUsername] = useState('admin');
   const [adminPassword, setAdminPassword] = useState('Admin@2026');
   const [authError, setAuthError] = useState('');
+
+  // Drag & drop floating images and section ordering state
+  const [floatingImages, setFloatingImages] = useState([]);
+  const [sectionOrder, setSectionOrder] = useState(['hero', 'configurator', 'bento', 'specs']);
 
   // Modals state
   const [quickBuyOpen, setQuickBuyOpen] = useState(false);
@@ -56,9 +61,21 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       .then((detailRes) => {
         if (!isMounted) return;
         if (detailRes && detailRes.data) {
-          setActiveProduct(detailRes.data);
-          if (detailRes.data.variants && detailRes.data.variants.length > 0) {
-            setSelectedVariant(detailRes.data.variants[0]);
+          const prodData = detailRes.data;
+          setActiveProduct(prodData);
+          if (prodData.variants && prodData.variants.length > 0) {
+            setSelectedVariant(prodData.variants[0]);
+          }
+          // Load floating images & section order from specifications
+          if (prodData.specifications?.floating_images) {
+            setFloatingImages(prodData.specifications.floating_images);
+          } else {
+            setFloatingImages([]);
+          }
+          if (prodData.specifications?.section_order) {
+            setSectionOrder(prodData.specifications.section_order);
+          } else {
+            setSectionOrder(['hero', 'configurator', 'bento', 'specs']);
           }
         }
         setLoading(false);
@@ -130,7 +147,87 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setHasChanges(true);
   };
 
-  // Save changes live to backend
+  // Reorder Bento feature highlights (Drag & Drop or Swap)
+  const handleReorderFeatures = (sourceIdx, targetIdx) => {
+    if (!activeProduct) return;
+    const list = [...(activeProduct.features || [])];
+    while (list.length < 4) {
+      list.push(`Feature ${list.length + 1}`);
+    }
+    const temp = list[sourceIdx];
+    list[sourceIdx] = list[targetIdx];
+    list[targetIdx] = temp;
+    setActiveProduct((prev) => ({
+      ...prev,
+      features: list
+    }));
+    setHasChanges(true);
+  };
+
+  // Update Hero Hardware main image directly (Upload or Drop)
+  const handleUpdateHeroImage = (dataUrl) => {
+    if (!activeProduct) return;
+    const newImages = [...(activeProduct.images || [])];
+    if (newImages.length > 0) {
+      newImages[0] = dataUrl;
+    } else {
+      newImages.push(dataUrl);
+    }
+    setActiveProduct((prev) => ({
+      ...prev,
+      images: newImages
+    }));
+    setHasChanges(true);
+  };
+
+  // Update hero badges
+  const handleUpdateBadge = (index, val) => {
+    handleUpdateFeature(index, val);
+  };
+
+  // Floating Image Handlers
+  const handleAddFloatingImage = (dataUrl) => {
+    const newImg = {
+      id: `float-${Date.now()}`,
+      src: dataUrl,
+      x: Math.min(window.innerWidth - 260, 40 + floatingImages.length * 30),
+      y: 160 + floatingImages.length * 40,
+      width: 220,
+      caption: ''
+    };
+    setFloatingImages((prev) => [...prev, newImg]);
+    setHasChanges(true);
+  };
+
+  const handleUpdateFloatingImagePosition = (id, x, y) => {
+    setFloatingImages((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, x, y } : item))
+    );
+    setHasChanges(true);
+  };
+
+  const handleUpdateFloatingImageWidth = (id, width) => {
+    setFloatingImages((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, width } : item))
+    );
+    setHasChanges(true);
+  };
+
+  const handleDeleteFloatingImage = (id) => {
+    setFloatingImages((prev) => prev.filter((item) => item.id !== id));
+    setHasChanges(true);
+  };
+
+  // Section Ordering Handler
+  const handleMoveSection = (fromIdx, toIdx) => {
+    const list = [...sectionOrder];
+    const item = list.splice(fromIdx, 1)[0];
+    list.splice(toIdx, 0, item);
+    setSectionOrder(list);
+    setHasChanges(true);
+  };
+
+  // Save changes live to backend SQLite database
   const handleSaveLive = async () => {
     if (!activeProduct) return;
     setIsSaving(true);
@@ -148,9 +245,16 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         }
       };
 
+      const baseSpecs = fullData.specifications || {};
+      const updatedSpecs = {
+        ...baseSpecs,
+        floating_images: floatingImages,
+        section_order: sectionOrder
+      };
+
       const payload = {
         slug: fullData.slug,
-        images: fullData.images,
+        images: activeProduct.images || fullData.images,
         is_featured: fullData.is_featured,
         is_active: true,
         translations: ['en', 'vi', 'ar'].map((langKey) => ({
@@ -161,7 +265,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           features: typeof updatedTranslations[langKey]?.features === 'string'
             ? updatedTranslations[langKey]?.features.split('\n').filter(Boolean)
             : (updatedTranslations[langKey]?.features || []),
-          specifications: fullData.specifications || {}
+          specifications: updatedSpecs
         })),
         variants: [
           {
@@ -179,7 +283,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
       await adminApi.updateProduct(activeProduct.id, payload);
       setHasChanges(false);
-      alert('✅ Đã lưu trực tiếp nội dung thành công lên website!');
+      alert('✅ Đã lưu trực tiếp toàn bộ nội dung, vị trí ảnh và thứ tự khối thành công lên website!');
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.detail || 'Không thể lưu thay đổi trực tiếp. Vui lòng thử lại.');
@@ -194,6 +298,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       productApi.getProductDetail(activeProductId, language, currency)
         .then((res) => {
           setActiveProduct(res.data);
+          if (res.data.specifications?.floating_images) {
+            setFloatingImages(res.data.specifications.floating_images);
+          }
+          if (res.data.specifications?.section_order) {
+            setSectionOrder(res.data.specifications.section_order);
+          }
           setHasChanges(false);
           setLoading(false);
         })
@@ -237,45 +347,74 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           </span>
         </div>
       ) : (
-        <main>
-          {/* Hero Section */}
-          <HeroShowcase
-            product={activeProduct}
-            allProducts={products}
-            onSelectProduct={handleSelectProduct}
-            onQuickBuy={(p) => handleOpenQuickBuy(p)}
-            isEditMode={isEditMode}
-            onUpdateField={handleUpdateField}
-          />
+        <main className="relative">
+          {/* Dynamic Section Ordering */}
+          {sectionOrder.map((sectionKey) => {
+            if (sectionKey === 'hero') {
+              return (
+                <HeroShowcase
+                  key="hero"
+                  product={activeProduct}
+                  allProducts={products}
+                  onSelectProduct={handleSelectProduct}
+                  onQuickBuy={(p) => handleOpenQuickBuy(p)}
+                  isEditMode={isEditMode}
+                  onUpdateField={handleUpdateField}
+                  onUpdateImage={handleUpdateHeroImage}
+                  onUpdateBadge={handleUpdateBadge}
+                />
+              );
+            }
 
-          {/* Apple Store Configurator Section */}
-          {activeProduct && (
-            <VariantPicker
-              product={activeProduct}
-              selectedVariant={selectedVariant}
-              onSelectVariant={setSelectedVariant}
-              onBuyNow={(p, v) => handleOpenQuickBuy(p, v)}
-            />
-          )}
+            if (sectionKey === 'configurator' && activeProduct) {
+              return (
+                <VariantPicker
+                  key="configurator"
+                  product={activeProduct}
+                  selectedVariant={selectedVariant}
+                  onSelectVariant={setSelectedVariant}
+                  onBuyNow={(p, v) => handleOpenQuickBuy(p, v)}
+                />
+              );
+            }
 
-          {/* Apple Bento Highlights with Live Edit */}
-          {activeProduct && (
-            <BentoFeatures 
-              product={activeProduct} 
-              isEditMode={isEditMode}
-              onUpdateFeature={handleUpdateFeature}
-              onUpdateField={handleUpdateField}
-            />
-          )}
+            if (sectionKey === 'bento' && activeProduct) {
+              return (
+                <BentoFeatures 
+                  key="bento"
+                  product={activeProduct} 
+                  isEditMode={isEditMode}
+                  onUpdateFeature={handleUpdateFeature}
+                  onUpdateField={handleUpdateField}
+                  onReorderFeatures={handleReorderFeatures}
+                />
+              );
+            }
 
-          {/* Apple Tech Specs */}
-          {activeProduct && (
-            <TechSpecs product={activeProduct} />
-          )}
+            if (sectionKey === 'specs' && activeProduct) {
+              return (
+                <TechSpecs key="specs" product={activeProduct} />
+              );
+            }
+
+            return null;
+          })}
         </main>
       )}
 
-      {/* Floating Apple Live Editor Dock */}
+      {/* Custom Draggable Floating Images on Website */}
+      {floatingImages.map((imgItem) => (
+        <DraggableFloatingImage
+          key={imgItem.id}
+          item={imgItem}
+          isEditMode={isEditMode}
+          onUpdatePosition={handleUpdateFloatingImagePosition}
+          onUpdateWidth={handleUpdateFloatingImageWidth}
+          onDelete={handleDeleteFloatingImage}
+        />
+      ))}
+
+      {/* Floating Apple Live Drag & Drop Editor Dock */}
       <LiveEditorBar
         isEditMode={isEditMode}
         hasChanges={hasChanges}
@@ -283,6 +422,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         onSave={handleSaveLive}
         onReset={handleReset}
         onExit={() => setIsEditMode(false)}
+        onAddFloatingImage={handleAddFloatingImage}
+        sectionOrder={sectionOrder}
+        onMoveSection={handleMoveSection}
       />
 
       {/* Apple Iconic Footer */}
@@ -327,7 +469,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">Xác Thực Quản Trị</h3>
-                <p className="text-[11px] text-[#86868b]">Mở quyền sửa văn bản trực tiếp như Word</p>
+                <p className="text-[11px] text-[#86868b]">Mở quyền sửa văn bản & kéo thả trực tiếp</p>
               </div>
             </div>
 
