@@ -4,6 +4,7 @@ import { CurrencyProvider } from './contexts/CurrencyContext';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -41,28 +42,30 @@ export default function App() {
   };
 
   return (
-    <CurrencyProvider initialCurrency={activeCurrency}>
-      <LanguageProvider onLanguageChange={handleLanguageChangeSyncCurrency}>
-        {currentView === 'store' && (
-          <HomePage
-            onNavigateAdmin={handleNavigateAdmin}
-            onOrderSuccess={handleOrderSuccess}
-          />
-        )}
+    <ErrorBoundary>
+      <CurrencyProvider initialCurrency={activeCurrency}>
+        <LanguageProvider onLanguageChange={handleLanguageChangeSyncCurrency}>
+          {currentView === 'store' && (
+            <HomePage
+              onNavigateAdmin={handleNavigateAdmin}
+              onOrderSuccess={handleOrderSuccess}
+            />
+          )}
 
-        {currentView === 'admin' && (
-          <AdminPage
-            onBackToStore={handleBackToStore}
-          />
-        )}
+          {currentView === 'admin' && (
+            <AdminPage
+              onBackToStore={handleBackToStore}
+            />
+          )}
 
-        {currentView === 'success' && (
-          <OrderSuccessPage
-            orderId={completedOrderId}
-            onBackToStore={handleBackToStore}
-          />
-        )}
-      </LanguageProvider>
-    </CurrencyProvider>
+          {currentView === 'success' && (
+            <OrderSuccessPage
+              orderId={completedOrderId}
+              onBackToStore={handleBackToStore}
+            />
+          )}
+        </LanguageProvider>
+      </CurrencyProvider>
+    </ErrorBoundary>
   );
 }

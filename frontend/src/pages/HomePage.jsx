@@ -40,12 +40,18 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   // Canva Studio visual canvas elements state
   const [canvasElements, setCanvasElements] = useState([]);
   const [isCanvaDrawerOpen, setIsCanvaDrawerOpen] = useState(false);
-  const [canvaHistory, setCanvaHistory] = useState({
-    canUndo: false,
-    canRedo: false,
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const canvaHistoryRef = useRef({
     undo: () => {},
     redo: () => {}
   });
+
+  const handleHistoryStateChange = React.useCallback(({ canUndo: u, canRedo: r, undo, redo }) => {
+    canvaHistoryRef.current = { undo, redo };
+    setCanUndo((prev) => (prev !== u ? u : prev));
+    setCanRedo((prev) => (prev !== r ? r : prev));
+  }, []);
 
   // Modals state
   const [quickBuyOpen, setQuickBuyOpen] = useState(false);
@@ -270,10 +276,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   };
 
   // Canva Studio elements change handler
-  const handleCanvasElementsChange = (newElements) => {
+  const handleCanvasElementsChange = React.useCallback((newElements) => {
     setCanvasElements(newElements);
     setHasChanges(true);
-  };
+  }, []);
 
   // Section Ordering Handler
   const handleMoveSection = (fromIdx, toIdx) => {
@@ -481,7 +487,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             isDrawerOpen={isCanvaDrawerOpen}
             onCloseDrawer={() => setIsCanvaDrawerOpen(false)}
             onOpenDrawer={() => setIsCanvaDrawerOpen(true)}
-            onHistoryStateChange={(state) => setCanvaHistory(state)}
+            onHistoryStateChange={handleHistoryStateChange}
           />
 
           {/* Dynamic Section Ordering with Direct Visual Controls */}
@@ -618,10 +624,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         sectionOrder={sectionOrder}
         onMoveSection={handleMoveSection}
         onOpenCanvaDrawer={() => setIsCanvaDrawerOpen(true)}
-        onUndo={canvaHistory.undo}
-        onRedo={canvaHistory.redo}
-        canUndo={canvaHistory.canUndo}
-        canRedo={canvaHistory.canRedo}
+        onUndo={() => canvaHistoryRef.current.undo?.()}
+        onRedo={() => canvaHistoryRef.current.redo?.()}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
 
       {/* Apple Iconic Footer */}

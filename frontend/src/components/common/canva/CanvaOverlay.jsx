@@ -25,6 +25,12 @@ export default function CanvaOverlay({
   const redoRef = useRef(redoStack);
   redoRef.current = redoStack;
 
+  const onChangeElementsRef = useRef(onChangeElements);
+  onChangeElementsRef.current = onChangeElements;
+
+  const onHistoryStateChangeRef = useRef(onHistoryStateChange);
+  onHistoryStateChangeRef.current = onHistoryStateChange;
+
   // 1. Snapshot Management for Undo / Redo
   const saveSnapshot = useCallback(() => {
     setHistory((prev) => {
@@ -42,8 +48,8 @@ export default function CanvaOverlay({
 
     setRedoStack((prev) => [JSON.parse(JSON.stringify(elementsRef.current)), ...prev]);
     setHistory(newHistory);
-    onChangeElements?.(previous);
-  }, [onChangeElements]);
+    onChangeElementsRef.current?.(previous);
+  }, []);
 
   const handleRedo = useCallback(() => {
     if (redoRef.current.length === 0) return;
@@ -52,18 +58,29 @@ export default function CanvaOverlay({
 
     setHistory((prev) => [...prev, JSON.parse(JSON.stringify(elementsRef.current))]);
     setRedoStack(newRedo);
-    onChangeElements?.(next);
-  }, [onChangeElements]);
+    onChangeElementsRef.current?.(next);
+  }, []);
 
-  // Expose undo/redo state to parent (e.g. for LiveEditorBar)
+  // Expose undo/redo state to parent (guarded against re-renders)
+  const prevHistoryLenRef = useRef(-1);
+  const prevRedoLenRef = useRef(-1);
+
   useEffect(() => {
-    onHistoryStateChange?.({
-      canUndo: history.length > 0,
-      canRedo: redoStack.length > 0,
-      undo: handleUndo,
-      redo: handleRedo
-    });
-  }, [history.length, redoStack.length, handleUndo, handleRedo, onHistoryStateChange]);
+    const curHistLen = history.length;
+    const curRedoLen = redoStack.length;
+
+    if (curHistLen !== prevHistoryLenRef.current || curRedoLen !== prevRedoLenRef.current) {
+      prevHistoryLenRef.current = curHistLen;
+      prevRedoLenRef.current = curRedoLen;
+
+      onHistoryStateChangeRef.current?.({
+        canUndo: curHistLen > 0,
+        canRedo: curRedoLen > 0,
+        undo: handleUndo,
+        redo: handleRedo
+      });
+    }
+  }, [history.length, redoStack.length, handleUndo, handleRedo]);
 
   // 2. Global Keyboard Shortcuts: Ctrl+Z, Ctrl+Y, Delete, Ctrl+D, Arrow keys, Escape
   useEffect(() => {
