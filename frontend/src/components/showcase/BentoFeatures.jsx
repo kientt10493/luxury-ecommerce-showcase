@@ -14,19 +14,19 @@ export default function BentoFeatures({
 
   if (!product) return null;
 
-  const features = product.features || [];
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements'];
   const specs = product.specifications || {};
-  const specEntries = Object.entries(specs);
+  const specEntries = Object.entries(specs).filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object');
 
   // Dynamic feature highlights derived from actual product data
   const feature1 = features[0] || product.tagline || product.name;
-  const feature2 = features[1] || (specEntries[0] ? `${specEntries[0][0]}: ${specEntries[0][1]}` : 'Engineered Performance');
-  const feature3 = features[2] || (specEntries[1] ? `${specEntries[1][0]}: ${specEntries[1][1]}` : 'Sensory Immersion');
-  const feature4 = features[3] || (specEntries[2] ? `${specEntries[2][0]}: ${specEntries[2][1]}` : `${product.name} Craftsmanship`);
+  const feature2 = features[1] || (specEntries[0] ? `${specEntries[0][0]}: ${String(specEntries[0][1])}` : 'Engineered Performance');
+  const feature3 = features[2] || (specEntries[1] ? `${specEntries[1][0]}: ${String(specEntries[1][1])}` : 'Sensory Immersion');
+  const feature4 = features[3] || (specEntries[2] ? `${specEntries[2][0]}: ${String(specEntries[2][1])}` : `${product.name} Craftsmanship`);
 
   // Key spec tags for Card 1 bottom bar
   const highlightTags = specEntries.length > 0 
-    ? specEntries.slice(0, 3).map(([key, val]) => `${key}: ${val}`)
+    ? specEntries.slice(0, 3).map(([key, val]) => `${key}: ${String(val)}`)
     : ['Precision Engineered', 'Apple Quality Standard', 'Tested & Certified'];
 
   const [dragOverIndex, setDragOverIndex] = React.useState(null);

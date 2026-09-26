@@ -6,7 +6,10 @@ export default function TechSpecs({ product }) {
 
   if (!product) return null;
 
-  const rawSpecs = Object.entries(product.specifications || {});
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements'];
+  const rawSpecs = Object.entries(product.specifications || {})
+    .filter(([key, value]) => !internalKeys.includes(key) && typeof value !== 'object');
+
   const specs = rawSpecs.length > 0 ? rawSpecs : [
     ["Model Identifier", product.slug?.toUpperCase() || 'FLAGSHIP-01'],
     ["Available Finishes", product.variants?.map(v => v.attributes?.color).filter(Boolean).join(', ') || 'Space Black'],
@@ -43,7 +46,7 @@ export default function TechSpecs({ product }) {
                 {label}
               </div>
               <div className="sm:col-span-8 text-sm text-[#a1a1a6] leading-relaxed">
-                {value}
+                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
               </div>
             </div>
           ))}

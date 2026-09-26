@@ -22,6 +22,10 @@ export default function HeroShowcase({
 
   if (!product) return null;
 
+  const displayableSpecs = Object.entries(product.specifications || {})
+    .filter(([k, v]) => !['floating_images', 'section_order', 'canvas_elements'].includes(k) && typeof v !== 'object')
+    .map(([k, v]) => `${k}: ${v}`);
+
   const mainImage = (product.images && product.images[0]) || "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=1200&auto=format&fit=crop";
 
   return (
@@ -223,7 +227,7 @@ export default function HeroShowcase({
             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none gap-2">
               <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
                 <EditableText
-                  value={product.features?.[0] || Object.values(product.specifications || {})[0] || product.name}
+                  value={product.features?.[0] || displayableSpecs[0] || product.name}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateBadge?.(0, val)}
                   as="span"
@@ -231,7 +235,7 @@ export default function HeroShowcase({
               </div>
               <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
                 <EditableText
-                  value={product.features?.[1] || Object.values(product.specifications || {})[1] || 'Precision Craft'}
+                  value={product.features?.[1] || displayableSpecs[1] || 'Precision Craft'}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateBadge?.(1, val)}
                   as="span"
