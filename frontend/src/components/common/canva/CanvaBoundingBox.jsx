@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RotateCw, Move, Trash2, Check } from 'lucide-react';
 import CanvaToolbar from './CanvaToolbar';
+import CanvaImageSlider from './CanvaImageSlider';
 
 export default function CanvaBoundingBox({
   element,
@@ -404,6 +405,15 @@ export default function CanvaBoundingBox({
             alt="Canva visual element"
             draggable={false}
             className="w-full h-auto object-cover pointer-events-none rounded-inherit shadow-lg"
+          />
+        )}
+
+        {/* Slider / Carousel Display */}
+        {type === 'slider' && (
+          <CanvaImageSlider
+            images={content}
+            style={style}
+            isEditMode={true}
           />
         )}
       </div>

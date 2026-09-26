@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import CanvaBoundingBox from './CanvaBoundingBox';
 import CanvaDrawer from './CanvaDrawer';
+import CanvaImageSlider from './CanvaImageSlider';
 
 export default function CanvaOverlay({
   elements = [],
@@ -416,6 +417,46 @@ export default function CanvaOverlay({
     onChangeElements?.(updated);
   };
 
+  const handleAddSlider = (images = [], customStyle = {}) => {
+    saveSnapshot();
+    const defaultImages = [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=800&auto=format&fit=crop'
+    ];
+    const slideList = Array.isArray(images) && images.length > 0 ? images : defaultImages;
+    const width = 480;
+    const height = 300;
+    const { x, y } = getInitialPosition(width);
+
+    const newElement = {
+      id: `slider-${Date.now()}`,
+      type: 'slider',
+      x,
+      y,
+      width,
+      height,
+      rotation: 0,
+      zIndex: 38,
+      content: slideList,
+      style: {
+        borderRadius: '20px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        autoplay: true,
+        interval: 3500,
+        showArrows: true,
+        showDots: true,
+        objectFit: 'cover',
+        opacity: 1,
+        ...customStyle
+      }
+    };
+
+    const updated = [...elements, newElement];
+    setSelectedId(newElement.id);
+    onChangeElements?.(updated);
+  };
+
   // If NOT in Edit Mode, render static luxury elements for site visitors
   if (!isEditMode) {
     if (!elements || elements.length === 0) return null;
@@ -488,6 +529,14 @@ export default function CanvaOverlay({
                   }}
                 />
               )}
+
+              {el.type === 'slider' && (
+                <CanvaImageSlider
+                  images={el.content}
+                  style={el.style}
+                  isEditMode={false}
+                />
+              )}
             </div>
           );
         })}
@@ -530,6 +579,7 @@ export default function CanvaOverlay({
         onAddText={handleAddText}
         onAddBadge={handleAddBadge}
         onAddImage={handleAddImage}
+        onAddSlider={handleAddSlider}
       />
     </>
   );

@@ -12,7 +12,9 @@ import {
   Flame,
   Tag,
   Gem,
-  Plus
+  Plus,
+  Film,
+  Trash2
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 
@@ -158,17 +160,74 @@ const SAMPLE_IMAGES = [
   }
 ];
 
+const SLIDER_PRESETS = [
+  {
+    id: 'slider-chrono',
+    title: 'Chrono Titanium Collection',
+    desc: '3 góc chuyển động cơ khí tinh xảo',
+    images: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=800&auto=format&fit=crop'
+    ],
+    style: {
+      borderRadius: '24px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+      autoplay: true,
+      interval: 3500
+    }
+  },
+  {
+    id: 'slider-tech',
+    title: 'Đẳng Cấp Hi-Tech Luxury',
+    desc: 'Phong cách Apple Store tối giản, hiện đại',
+    images: [
+      'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=800&auto=format&fit=crop'
+    ],
+    style: {
+      borderRadius: '20px',
+      boxShadow: '0 25px 50px -12px rgba(41, 151, 255, 0.25)',
+      autoplay: true,
+      interval: 4000
+    }
+  },
+  {
+    id: 'slider-lifestyle',
+    title: 'Boutique & Lifestyle Lookbook',
+    desc: 'Trải nghiệm thời thượng quý phái',
+    images: [
+      'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'
+    ],
+    style: {
+      borderRadius: '24px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+      autoplay: true,
+      interval: 3200
+    }
+  }
+];
+
 export default function CanvaDrawer({
   isOpen = false,
   onClose,
   onAddText,
   onAddBadge,
-  onAddImage
+  onAddImage,
+  onAddSlider
 }) {
-  const [activeTab, setActiveTab] = useState('text'); // 'text' | 'badge' | 'image'
+  const [activeTab, setActiveTab] = useState('text'); // 'text' | 'badge' | 'image' | 'slider'
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [customImageUrl, setCustomImageUrl] = useState('');
+  const [customSlideImages, setCustomSlideImages] = useState([
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=800&auto=format&fit=crop'
+  ]);
+  const [slideUrlInput, setSlideUrlInput] = useState('');
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -232,41 +291,53 @@ export default function CanvaDrawer({
         </div>
 
         {/* Tab Navigation */}
-        <div className="grid grid-cols-3 border-b border-white/10 bg-black/30 p-1">
+        <div className="grid grid-cols-4 border-b border-white/10 bg-black/30 p-1">
           <button
             onClick={() => setActiveTab('text')}
-            className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center justify-center space-x-1 py-2 rounded-lg text-[11px] font-medium transition-all ${
               activeTab === 'text'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
             }`}
           >
-            <Type className="w-3.5 h-3.5" />
-            <span>Văn bản</span>
+            <Type className="w-3 h-3" />
+            <span>Chữ</span>
           </button>
 
           <button
             onClick={() => setActiveTab('badge')}
-            className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center justify-center space-x-1 py-2 rounded-lg text-[11px] font-medium transition-all ${
               activeTab === 'badge'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
             }`}
           >
-            <Award className="w-3.5 h-3.5" />
+            <Award className="w-3 h-3" />
             <span>Huy hiệu</span>
           </button>
 
           <button
             onClick={() => setActiveTab('image')}
-            className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center justify-center space-x-1 py-2 rounded-lg text-[11px] font-medium transition-all ${
               activeTab === 'image'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
             }`}
           >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span>Hình ảnh</span>
+            <ImageIcon className="w-3 h-3" />
+            <span>Ảnh</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('slider')}
+            className={`flex items-center justify-center space-x-1 py-2 rounded-lg text-[11px] font-medium transition-all ${
+              activeTab === 'slider'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+            }`}
+          >
+            <Film className="w-3 h-3" />
+            <span>Slide ảnh</span>
           </button>
         </div>
 
@@ -483,6 +554,145 @@ export default function CanvaDrawer({
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: IMAGE SLIDER */}
+          {activeTab === 'slider' && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-neutral-300 font-medium">Bộ sưu tập Slide động</p>
+                <p className="text-[11px] text-neutral-400 mt-0.5">
+                  Thêm khung trình chiếu ảnh tương tác, tự động chuyển slide và có phím chuyển ảnh mượt mà:
+                </p>
+              </div>
+
+              {/* Slider Presets */}
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-semibold text-neutral-300 uppercase tracking-wider block">
+                  Mẫu Slide Thiết Kế Sẵn:
+                </span>
+                {SLIDER_PRESETS.map((preset) => (
+                  <div
+                    key={preset.id}
+                    className="p-3 rounded-xl bg-neutral-950/60 border border-white/10 hover:border-blue-500/50 transition-all flex flex-col gap-2 group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-semibold text-white group-hover:text-blue-400 transition-colors">
+                          {preset.title}
+                        </h4>
+                        <p className="text-[10px] text-neutral-400">{preset.desc}</p>
+                      </div>
+                      <span className="text-[10px] font-mono text-[#2997ff] bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                        {preset.images.length} ảnh
+                      </span>
+                    </div>
+
+                    {/* Thumbnail strip */}
+                    <div className="grid grid-cols-3 gap-1.5 rounded-lg overflow-hidden p-1 bg-black/40 border border-white/5">
+                      {preset.images.map((imgUrl, i) => (
+                        <div key={i} className="aspect-[4/3] rounded overflow-hidden bg-neutral-900">
+                          <img src={imgUrl} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAddSlider?.(preset.images, preset.style);
+                        onClose?.();
+                      }}
+                      className="w-full py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/20 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Slide này</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom Slider Builder */}
+              <div className="space-y-2.5 pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-neutral-300 uppercase tracking-wider">
+                    Tạo Slide Tùy Chỉnh:
+                  </span>
+                  <span className="text-[10px] text-neutral-400">
+                    {customSlideImages.length} ảnh đã chọn
+                  </span>
+                </div>
+
+                {/* Selected custom images */}
+                <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  {customSlideImages.map((url, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-neutral-950/60 p-1.5 rounded-lg border border-white/10">
+                      <img src={url} alt={`Custom ${i + 1}`} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                      <span className="text-[10px] text-neutral-300 truncate flex-1 font-mono">{url}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomSlideImages(customSlideImages.filter((_, idx) => idx !== i))}
+                        className="p-1 rounded text-neutral-400 hover:text-rose-400 hover:bg-rose-500/20 transition-colors"
+                        title="Xóa ảnh"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add image URL to custom list */}
+                <div className="flex gap-1.5">
+                  <input
+                    type="url"
+                    placeholder="Dán link ảnh (https://...)"
+                    value={slideUrlInput}
+                    onChange={(e) => setSlideUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && slideUrlInput.trim()) {
+                        e.preventDefault();
+                        setCustomSlideImages([...customSlideImages, slideUrlInput.trim()]);
+                        setSlideUrlInput('');
+                      }
+                    }}
+                    className="flex-1 bg-black/40 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (slideUrlInput.trim()) {
+                        setCustomSlideImages([...customSlideImages, slideUrlInput.trim()]);
+                        setSlideUrlInput('');
+                      }
+                    }}
+                    disabled={!slideUrlInput.trim()}
+                    className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Thêm
+                  </button>
+                </div>
+
+                {/* Create Button */}
+                <button
+                  type="button"
+                  disabled={customSlideImages.length === 0}
+                  onClick={() => {
+                    if (customSlideImages.length > 0) {
+                      onAddSlider?.(customSlideImages, {
+                        borderRadius: '20px',
+                        autoplay: true,
+                        interval: 3500
+                      });
+                      onClose?.();
+                    }
+                  }}
+                  className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  <Film className="w-4 h-4" />
+                  <span>+ Tạo Slide Trình Chiếu Mới</span>
+                </button>
               </div>
             </div>
           )}

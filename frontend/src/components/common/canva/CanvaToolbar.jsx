@@ -13,7 +13,10 @@ import {
   Minus,
   Plus,
   Sliders,
-  Sparkles
+  Sparkles,
+  Layers,
+  Play,
+  Pause
 } from 'lucide-react';
 
 const LUXURY_PALETTE = [
@@ -48,6 +51,8 @@ export default function CanvaToolbar({
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgPicker, setShowBgPicker] = useState(false);
+  const [showSlideManager, setShowSlideManager] = useState(false);
+  const [newSlideUrl, setNewSlideUrl] = useState('');
 
   if (!element) return null;
 
@@ -121,6 +126,7 @@ export default function CanvaToolbar({
               onClick={() => {
                 setShowColorPicker(!showColorPicker);
                 setShowBgPicker(false);
+                setShowSlideManager(false);
               }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
               title="Đổi màu chữ"
@@ -204,6 +210,7 @@ export default function CanvaToolbar({
               onClick={() => {
                 setShowBgPicker(!showBgPicker);
                 setShowColorPicker(false);
+                setShowSlideManager(false);
               }}
               className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
               title="Đổi màu nền khung / tem"
@@ -238,7 +245,7 @@ export default function CanvaToolbar({
         </>
       )}
 
-      {/* 2. Image Specific Controls */}
+      {/* 2a. Image Specific Controls */}
       {element.type === 'image' && (
         <div className="flex items-center gap-2 px-1">
           <button
@@ -282,6 +289,132 @@ export default function CanvaToolbar({
             title="Bật/Tắt bo góc tròn"
           >
             Bo góc
+          </button>
+        </div>
+      )}
+
+      {/* 2b. Slider / Carousel Specific Controls */}
+      {element.type === 'slider' && (
+        <div className="flex items-center gap-1.5 px-1">
+          {/* Manage Slide Images Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowSlideManager(!showSlideManager);
+                setShowColorPicker(false);
+                setShowBgPicker(false);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-semibold transition-all shadow cursor-pointer"
+              title="Quản lý ảnh trong slide"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="text-[11px]">
+                Ảnh Slide ({Array.isArray(element.content) ? element.content.length : 1})
+              </span>
+            </button>
+
+            {showSlideManager && (
+              <div 
+                className="absolute top-10 left-0 bg-[#1c1c1e] p-3 rounded-2xl border border-white/20 shadow-2xl z-50 flex flex-col gap-2 w-72"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                  <span className="font-semibold text-[11px] text-white">Danh sách ảnh Slide</span>
+                  <span className="text-[10px] text-[#2997ff] font-mono">
+                    {Array.isArray(element.content) ? element.content.length : 1} ảnh
+                  </span>
+                </div>
+
+                {/* Thumbnails list */}
+                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {(Array.isArray(element.content) ? element.content : [element.content]).map((url, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-white/5 p-1.5 rounded-xl border border-white/10 group">
+                      <img src={url} alt={`Slide ${i + 1}`} className="w-9 h-9 object-cover rounded-lg flex-shrink-0" />
+                      <span className="text-[10px] text-neutral-300 truncate flex-1 font-mono">
+                        {url}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentList = Array.isArray(element.content) ? element.content : [element.content];
+                          if (currentList.length <= 1) {
+                            alert('Slide cần có ít nhất 1 hình ảnh!');
+                            return;
+                          }
+                          const updated = currentList.filter((_, idx) => idx !== i);
+                          onUpdateContent?.(updated);
+                        }}
+                        className="p-1 rounded text-neutral-400 hover:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                        title="Xóa ảnh này khỏi slide"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new image input */}
+                <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/10">
+                  <input
+                    type="text"
+                    placeholder="URL ảnh mới (https://...)"
+                    value={newSlideUrl}
+                    onChange={(e) => setNewSlideUrl(e.target.value)}
+                    className="flex-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1 text-[10px] text-white outline-none focus:border-[#0071e3]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newSlideUrl.trim()) {
+                        const currentList = Array.isArray(element.content) ? element.content : [element.content];
+                        onUpdateContent?.([...currentList, newSlideUrl.trim()]);
+                        setNewSlideUrl('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newSlideUrl.trim()) {
+                        const currentList = Array.isArray(element.content) ? element.content : [element.content];
+                        onUpdateContent?.([...currentList, newSlideUrl.trim()]);
+                        setNewSlideUrl('');
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] text-white text-[10px] font-semibold cursor-pointer shadow"
+                  >
+                    + Thêm
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Autoplay Toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdateStyle?.({ autoplay: style.autoplay === false ? true : false })}
+            className={`px-2.5 py-1 rounded-xl text-[11px] border transition-colors cursor-pointer flex items-center gap-1 ${
+              style.autoplay !== false
+                ? 'bg-[#0071e3] border-[#0071e3] text-white shadow'
+                : 'bg-white/10 border-white/10 text-[#86868b] hover:text-white'
+            }`}
+            title="Bật/Tắt tự động trượt slide"
+          >
+            {style.autoplay !== false ? <Play className="w-3 h-3 text-emerald-400" /> : <Pause className="w-3 h-3" />}
+            <span>Auto</span>
+          </button>
+
+          {/* Corner Radius Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const cur = parseInt(style.borderRadius) || 20;
+              const next = cur === 0 ? '16px' : cur === 16 ? '24px' : cur === 24 ? '32px' : '0px';
+              onUpdateStyle?.({ borderRadius: next });
+            }}
+            className="px-2 py-1 rounded-xl text-[11px] bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-colors cursor-pointer"
+            title="Đổi kiểu bo góc"
+          >
+            Bo góc: {style.borderRadius || '20px'}
           </button>
         </div>
       )}
