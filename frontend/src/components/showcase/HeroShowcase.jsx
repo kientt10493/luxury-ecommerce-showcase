@@ -13,7 +13,9 @@ export default function HeroShowcase({
   onUpdateField,
   onUpdateImage,
   onUpdateImageFile,
-  onUpdateBadge
+  onUpdateBadge,
+  textOffsets = {},
+  onUpdateTextOffset
 }) {
   const { t, isRTL } = useLanguage();
   const { formatPrice } = useCurrency();
@@ -22,8 +24,9 @@ export default function HeroShowcase({
 
   if (!product) return null;
 
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'];
   const displayableSpecs = Object.entries(product.specifications || {})
-    .filter(([k, v]) => !['floating_images', 'section_order', 'canvas_elements'].includes(k) && typeof v !== 'object')
+    .filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object')
     .map(([k, v]) => `${k}: ${v}`);
 
   const mainImage = (product.images && product.images[0]) || "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=1200&auto=format&fit=crop";
@@ -69,9 +72,12 @@ export default function HeroShowcase({
 
           <div>
             <EditableText
+              id="hero-product-name"
               value={product.name}
               isEditing={isEditMode}
               onChange={(val) => onUpdateField?.('name', val)}
+              offset={textOffsets?.['hero-product-name']}
+              onOffsetChange={onUpdateTextOffset}
               as="h1"
               className="text-5xl sm:text-7xl font-bold tracking-tight text-[#f5f5f7] leading-[1.05]"
             />
@@ -79,9 +85,12 @@ export default function HeroShowcase({
 
           <div>
             <EditableText
+              id="hero-product-tagline"
               value={product.tagline}
               isEditing={isEditMode}
               onChange={(val) => onUpdateField?.('tagline', val)}
+              offset={textOffsets?.['hero-product-tagline']}
+              onOffsetChange={onUpdateTextOffset}
               as="p"
               className="text-xl sm:text-2xl text-[#86868b] font-normal leading-relaxed max-w-2xl mx-auto"
             />
@@ -227,17 +236,23 @@ export default function HeroShowcase({
             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none gap-2">
               <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
                 <EditableText
+                  id="hero-badge-0"
                   value={product.features?.[0] || displayableSpecs[0] || product.name}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateBadge?.(0, val)}
+                  offset={textOffsets?.['hero-badge-0']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="span"
                 />
               </div>
               <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%] pointer-events-auto">
                 <EditableText
+                  id="hero-badge-1"
                   value={product.features?.[1] || displayableSpecs[1] || 'Precision Craft'}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateBadge?.(1, val)}
+                  offset={textOffsets?.['hero-badge-1']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="span"
                 />
               </div>

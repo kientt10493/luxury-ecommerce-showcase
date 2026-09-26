@@ -12,7 +12,7 @@ import VietQRModal from '../components/checkout/VietQRModal';
 import LiveEditorBar from '../components/navbar/LiveEditorBar';
 import DraggableFloatingImage from '../components/common/DraggableFloatingImage';
 import CanvaOverlay from '../components/common/canva/CanvaOverlay';
-import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown, GripVertical, Trash2 } from 'lucide-react';
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { language, t } = useLanguage();
@@ -36,9 +36,12 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   // Drag & drop floating images and section ordering state
   const [floatingImages, setFloatingImages] = useState([]);
   const [sectionOrder, setSectionOrder] = useState(['hero', 'configurator', 'bento', 'specs']);
+  const [draggedSectionIndex, setDraggedSectionIndex] = useState(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState(null);
 
-  // Canva Studio visual canvas elements state
+  // Canva Studio visual canvas elements & text offsets state
   const [canvasElements, setCanvasElements] = useState([]);
+  const [textOffsets, setTextOffsets] = useState({});
   const [isCanvaDrawerOpen, setIsCanvaDrawerOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -98,6 +101,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             setCanvasElements(prodData.specifications.canvas_elements);
           } else {
             setCanvasElements([]);
+          }
+          if (prodData.specifications?.text_offsets) {
+            setTextOffsets(prodData.specifications.text_offsets);
+          } else {
+            setTextOffsets({});
           }
         }
         setLoading(false);
@@ -281,6 +289,81 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setHasChanges(true);
   }, []);
 
+  // Text offsets update handler
+  const handleUpdateTextOffset = (id, offset) => {
+    setTextOffsets((prev) => ({
+      ...prev,
+      [id]: offset
+    }));
+    setHasChanges(true);
+  };
+
+  // Hardware specifications map update handler
+  const handleUpdateSpecsMap = (newSpecsMap) => {
+    setActiveProduct((prev) => {
+      const existing = prev.specifications || {};
+      const internalPreserved = {};
+      ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'].forEach((k) => {
+        if (existing[k] !== undefined) internalPreserved[k] = existing[k];
+      });
+      return {
+        ...prev,
+        specifications: {
+          ...newSpecsMap,
+          ...internalPreserved
+        }
+      };
+    });
+    setHasChanges(true);
+  };
+
+  // Section Drag & Drop & Delete Handlers
+  const handleSectionDragStart = (e, index) => {
+    setDraggedSectionIndex(index);
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSectionDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dropTargetIndex !== index) {
+      setDropTargetIndex(index);
+    }
+  };
+
+  const handleSectionDrop = (e, targetIndex) => {
+    e.preventDefault();
+    setDropTargetIndex(null);
+    const fromIndex = draggedSectionIndex;
+    setDraggedSectionIndex(null);
+
+    if (fromIndex === null || fromIndex === targetIndex) return;
+
+    const list = [...sectionOrder];
+    const item = list.splice(fromIndex, 1)[0];
+    list.splice(targetIndex, 0, item);
+    setSectionOrder(list);
+    setHasChanges(true);
+  };
+
+  const handleSectionDragEnd = () => {
+    setDraggedSectionIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleDeleteSection = (secKey) => {
+    setSectionOrder((prev) => prev.filter((k) => k !== secKey));
+    setHasChanges(true);
+  };
+
+  const handleRestoreSection = (secKey) => {
+    if (!sectionOrder.includes(secKey)) {
+      setSectionOrder((prev) => [...prev, secKey]);
+      setHasChanges(true);
+    }
+  };
+
   // Section Ordering Handler
   const handleMoveSection = (fromIdx, toIdx) => {
     const list = [...sectionOrder];
@@ -340,7 +423,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         ...baseSpecs,
         floating_images: floatingImages,
         section_order: sectionOrder,
-        canvas_elements: canvasElements
+        canvas_elements: canvasElements,
+        text_offsets: textOffsets
       };
 
       // Construct clean payload strictly conforming to ProductCreateRequest schema
@@ -435,6 +519,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           } else {
             setCanvasElements([]);
           }
+          if (res.data.specifications?.text_offsets) {
+            setTextOffsets(res.data.specifications.text_offsets);
+          } else {
+            setTextOffsets({});
+          }
           setHasChanges(false);
           setLoading(false);
         })
@@ -504,20 +593,27 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
               return (
                 <div className="sticky top-24 z-30 max-w-5xl mx-auto px-4 pt-3 pb-1">
                   <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 rounded-2xl bg-[#161617]/95 backdrop-blur-xl border border-[#0071e3]/40 shadow-2xl ring-1 ring-[#0071e3]/20 text-xs text-white">
-                    <div className="flex items-center gap-2 font-semibold text-[#2997ff]">
-                      <Layers className="w-4 h-4" />
+                    <div 
+                      draggable
+                      onDragStart={(e) => handleSectionDragStart(e, secIndex)}
+                      onDragEnd={handleSectionDragEnd}
+                      className="flex items-center gap-2 font-semibold text-[#2997ff] cursor-grab active:cursor-grabbing px-2 py-1 rounded-lg hover:bg-white/10 transition-colors select-none"
+                      title="Giữ chuột và kéo để đổi vị trí khối này lên trên hoặc xuống dưới"
+                    >
+                      <GripVertical className="w-4 h-4 text-[#2997ff]" />
                       <span>Vị trí #{secIndex + 1}: {sectionLabels[sectionKey] || sectionKey}</span>
                     </div>
+
                     <div className="flex items-center gap-2">
                       {secIndex > 0 && (
                         <button
                           type="button"
                           onClick={() => handleMoveSection(secIndex, secIndex - 1)}
                           className="px-3 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white flex items-center gap-1.5 transition-all cursor-pointer font-medium shadow"
-                          title="Đổi chỗ đưa khối này lên trên"
+                          title="Dời lên trên"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
-                          <span>Dời lên trên</span>
+                          <span className="hidden sm:inline">Dời lên</span>
                         </button>
                       )}
                       {secIndex < sectionOrder.length - 1 && (
@@ -525,21 +621,38 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                           type="button"
                           onClick={() => handleMoveSection(secIndex, secIndex + 1)}
                           className="px-3 py-1 rounded-full bg-white/10 hover:bg-[#0071e3] text-white flex items-center gap-1.5 transition-all cursor-pointer font-medium shadow"
-                          title="Đổi chỗ đưa khối này xuống dưới"
+                          title="Dời xuống dưới"
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
-                          <span>Dời xuống dưới</span>
+                          <span className="hidden sm:inline">Dời xuống</span>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSection(sectionKey)}
+                        className="px-2.5 py-1 rounded-full bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer text-xs ml-1"
+                        title="Ẩn / Xóa khối này khỏi trang (có thể khôi phục lại bất kỳ lúc nào)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Xóa khối</span>
+                      </button>
                     </div>
                   </div>
                 </div>
               );
             };
 
+            const sectionWrapperProps = {
+              onDragOver: (e) => handleSectionDragOver(e, secIndex),
+              onDrop: (e) => handleSectionDrop(e, secIndex),
+              className: `relative group/sec transition-all ${
+                dropTargetIndex === secIndex ? 'ring-4 ring-[#0071e3] shadow-[0_0_40px_rgba(0,113,227,0.4)] rounded-3xl' : ''
+              } ${draggedSectionIndex === secIndex ? 'opacity-40' : ''}`
+            };
+
             if (sectionKey === 'hero') {
               return (
-                <div key="hero" className="relative group/sec">
+                <div key="hero" {...sectionWrapperProps}>
                   {renderSectionControl()}
                   <HeroShowcase
                     product={activeProduct}
@@ -551,6 +664,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     onUpdateImage={handleUpdateHeroImage}
                     onUpdateImageFile={handleUpdateHeroImageFile}
                     onUpdateBadge={handleUpdateBadge}
+                    textOffsets={textOffsets}
+                    onUpdateTextOffset={handleUpdateTextOffset}
                   />
                 </div>
               );
@@ -558,13 +673,16 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
             if (sectionKey === 'configurator' && activeProduct) {
               return (
-                <div key="configurator" className="relative group/sec">
+                <div key="configurator" {...sectionWrapperProps}>
                   {renderSectionControl()}
                   <VariantPicker
                     product={activeProduct}
                     selectedVariant={selectedVariant}
                     onSelectVariant={setSelectedVariant}
                     onBuyNow={(p, v) => handleOpenQuickBuy(p, v)}
+                    isEditMode={isEditMode}
+                    textOffsets={textOffsets}
+                    onUpdateTextOffset={handleUpdateTextOffset}
                   />
                 </div>
               );
@@ -572,7 +690,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
             if (sectionKey === 'bento' && activeProduct) {
               return (
-                <div key="bento" className="relative group/sec">
+                <div key="bento" {...sectionWrapperProps}>
                   {renderSectionControl()}
                   <BentoFeatures 
                     product={activeProduct} 
@@ -580,6 +698,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     onUpdateFeature={handleUpdateFeature}
                     onUpdateField={handleUpdateField}
                     onReorderFeatures={handleReorderFeatures}
+                    textOffsets={textOffsets}
+                    onUpdateTextOffset={handleUpdateTextOffset}
                   />
                 </div>
               );
@@ -587,9 +707,15 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
             if (sectionKey === 'specs' && activeProduct) {
               return (
-                <div key="specs" className="relative group/sec">
+                <div key="specs" {...sectionWrapperProps}>
                   {renderSectionControl()}
-                  <TechSpecs product={activeProduct} />
+                  <TechSpecs 
+                    product={activeProduct} 
+                    isEditMode={isEditMode}
+                    onUpdateSpecsMap={handleUpdateSpecsMap}
+                    textOffsets={textOffsets}
+                    onUpdateTextOffset={handleUpdateTextOffset}
+                  />
                 </div>
               );
             }
@@ -623,6 +749,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         onAddFloatingImageFile={handleAddFloatingImageFile}
         sectionOrder={sectionOrder}
         onMoveSection={handleMoveSection}
+        onDeleteSection={handleDeleteSection}
+        onRestoreSection={handleRestoreSection}
         onOpenCanvaDrawer={() => setIsCanvaDrawerOpen(true)}
         onUndo={() => canvaHistoryRef.current.undo?.()}
         onRedo={() => canvaHistoryRef.current.redo?.()}

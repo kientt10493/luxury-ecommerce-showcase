@@ -8,14 +8,16 @@ export default function BentoFeatures({
   isEditMode = false,
   onUpdateFeature,
   onUpdateField,
-  onReorderFeatures
+  onReorderFeatures,
+  textOffsets = {},
+  onUpdateTextOffset
 }) {
   const { t } = useLanguage();
 
   if (!product) return null;
 
   const features = product.features || [];
-  const internalKeys = ['floating_images', 'section_order', 'canvas_elements'];
+  const internalKeys = ['floating_images', 'section_order', 'canvas_elements', 'text_offsets'];
   const specs = product.specifications || {};
   const specEntries = Object.entries(specs).filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object');
 
@@ -107,12 +109,29 @@ export default function BentoFeatures({
           <div className="text-xs font-semibold text-[#ff9f0a] uppercase tracking-wider">
             {t('bento.badge')}
           </div>
-          <h2 className="text-4xl sm:text-6xl font-bold tracking-tight text-[#f5f5f7]">
-            Get the highlights.
-          </h2>
-          <p className="text-lg text-[#86868b] max-w-2xl font-normal leading-relaxed">
-            {product.tagline || t('bento.subtitle')}
-          </p>
+          <div>
+            <EditableText
+              id="bento-section-title"
+              value="Get the highlights."
+              isEditing={isEditMode}
+              offset={textOffsets?.['bento-section-title']}
+              onOffsetChange={onUpdateTextOffset}
+              as="h2"
+              className="text-4xl sm:text-6xl font-bold tracking-tight text-[#f5f5f7]"
+            />
+          </div>
+          <div>
+            <EditableText
+              id="bento-section-subtitle"
+              value={product.tagline || t('bento.subtitle')}
+              isEditing={isEditMode}
+              onChange={(val) => onUpdateField?.('tagline', val)}
+              offset={textOffsets?.['bento-section-subtitle']}
+              onOffsetChange={onUpdateTextOffset}
+              as="p"
+              className="text-lg text-[#86868b] max-w-2xl font-normal leading-relaxed"
+            />
+          </div>
         </div>
 
         {/* Dynamic Apple Bento Grid with Drag & Drop Reordering */}
@@ -142,9 +161,12 @@ export default function BentoFeatures({
 
               <div>
                 <EditableText
+                  id="bento-card-0-title"
                   value={feature1}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateFeature?.(0, val)}
+                  offset={textOffsets?.['bento-card-0-title']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="h3"
                   className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight"
                 />
@@ -152,9 +174,12 @@ export default function BentoFeatures({
 
               <div>
                 <EditableText
+                  id="bento-card-0-desc"
                   value={product.description || t('bento.subtitle')}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateField?.('description', val)}
+                  offset={textOffsets?.['bento-card-0-desc']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="p"
                   multiline={true}
                   className="text-[#86868b] text-base leading-relaxed font-normal"
@@ -192,9 +217,12 @@ export default function BentoFeatures({
             <div className="space-y-3">
               <div>
                 <EditableText
+                  id="bento-card-1-title"
                   value={feature2}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateFeature?.(1, val)}
+                  offset={textOffsets?.['bento-card-1-title']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="h3"
                   className="text-2xl font-bold tracking-tight text-white leading-snug"
                 />
@@ -231,9 +259,12 @@ export default function BentoFeatures({
             <div className="space-y-3">
               <div>
                 <EditableText
+                  id="bento-card-2-title"
                   value={feature3}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateFeature?.(2, val)}
+                  offset={textOffsets?.['bento-card-2-title']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="h3"
                   className="text-2xl font-bold tracking-tight text-white leading-snug"
                 />
@@ -270,9 +301,12 @@ export default function BentoFeatures({
             <div className="space-y-4 max-w-lg">
               <div>
                 <EditableText
+                  id="bento-card-3-title"
                   value={feature4}
                   isEditing={isEditMode}
                   onChange={(val) => onUpdateFeature?.(3, val)}
+                  offset={textOffsets?.['bento-card-3-title']}
+                  onOffsetChange={onUpdateTextOffset}
                   as="h3"
                   className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight"
                 />

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Save, RotateCcw, X, Check, Loader2, Sparkles, AlertCircle, ImagePlus, ArrowUpDown, ChevronUp, ChevronDown, Undo2, Redo2 } from 'lucide-react';
+import { Save, RotateCcw, X, Check, Loader2, Sparkles, AlertCircle, ImagePlus, ArrowUpDown, ChevronUp, ChevronDown, Undo2, Redo2, Plus, Trash2, GripVertical } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function LiveEditorBar({
@@ -13,6 +13,8 @@ export default function LiveEditorBar({
   onAddFloatingImageFile,
   sectionOrder = ['hero', 'configurator', 'bento', 'specs'],
   onMoveSection,
+  onDeleteSection,
+  onRestoreSection,
   onOpenCanvaDrawer,
   onUndo,
   onRedo,
@@ -199,49 +201,97 @@ export default function LiveEditorBar({
         </div>
       </div>
 
-      {/* Popover for Section Ordering */}
+      {/* Popover for Section Ordering & Management */}
       {showSectionModal && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-80 rounded-2xl bg-[#161617] border border-[#333336] p-4 shadow-2xl apple-animate-in space-y-3">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-84 rounded-2xl bg-[#161617] border border-[#333336] p-4 shadow-2xl apple-animate-in space-y-3.5">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <span className="text-xs font-semibold text-white">Sắp xếp thứ tự các khối</span>
+            <div>
+              <h3 className="text-xs font-semibold text-white">Quản lý & Sắp xếp khối</h3>
+              <p className="text-[10px] text-neutral-400">Đổi thứ tự, ẩn hoặc thêm lại các phần trang</p>
+            </div>
             <button 
               onClick={() => setShowSectionModal(false)}
-              className="text-[#86868b] hover:text-white p-1"
+              className="text-[#86868b] hover:text-white p-1 rounded-lg hover:bg-white/10"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
+          {/* Active Sections on page */}
           <div className="space-y-2">
-            {sectionOrder.map((secKey, idx) => (
-              <div 
-                key={secKey}
-                className="flex items-center justify-between p-2 rounded-xl bg-[#1c1c1e] border border-white/5 text-xs text-[#f5f5f7]"
-              >
-                <span>{sectionLabels[secKey] || secKey}</span>
-                <div className="flex items-center gap-1">
-                  {idx > 0 && (
+            <span className="text-[11px] font-semibold text-neutral-400">Khối đang hiển thị:</span>
+            {sectionOrder.length === 0 ? (
+              <p className="text-xs text-neutral-500 italic p-2 text-center">Chưa có khối nào được bật</p>
+            ) : (
+              sectionOrder.map((secKey, idx) => (
+                <div 
+                  key={secKey}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-[#1c1c1e] border border-white/5 text-xs text-[#f5f5f7] hover:border-blue-500/30 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-neutral-400 flex items-center justify-center text-[10px] font-mono">
+                      {idx + 1}
+                    </span>
+                    <span className="font-medium">{sectionLabels[secKey] || secKey}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {idx > 0 && (
+                      <button
+                        onClick={() => onMoveSection?.(idx, idx - 1)}
+                        className="p-1 rounded hover:bg-white/10 text-[#86868b] hover:text-white transition-colors"
+                        title="Dời lên trên"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {idx < sectionOrder.length - 1 && (
+                      <button
+                        onClick={() => onMoveSection?.(idx, idx + 1)}
+                        className="p-1 rounded hover:bg-white/10 text-[#86868b] hover:text-white transition-colors"
+                        title="Dời xuống dưới"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => onMoveSection?.(idx, idx - 1)}
-                      className="p-1 rounded hover:bg-white/10 text-[#86868b] hover:text-white"
-                      title="Lên trên"
+                      onClick={() => onDeleteSection?.(secKey)}
+                      className="p-1 rounded hover:bg-rose-500/20 text-neutral-500 hover:text-rose-400 transition-colors ml-1"
+                      title="Ẩn / Xóa khối này"
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  {idx < sectionOrder.length - 1 && (
-                    <button
-                      onClick={() => onMoveSection?.(idx, idx + 1)}
-                      className="p-1 rounded hover:bg-white/10 text-[#86868b] hover:text-white"
-                      title="Xuống dưới"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+
+          {/* Hidden Sections that can be restored */}
+          {['hero', 'configurator', 'bento', 'specs'].some(k => !sectionOrder.includes(k)) && (
+            <div className="border-t border-white/10 pt-3 space-y-2">
+              <span className="text-[11px] font-semibold text-neutral-400">Khối đã ẩn / xóa (Bấm để thêm lại):</span>
+              <div className="space-y-1.5">
+                {['hero', 'configurator', 'bento', 'specs']
+                  .filter(k => !sectionOrder.includes(k))
+                  .map(hiddenKey => (
+                    <div
+                      key={hiddenKey}
+                      className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-dashed border-white/15 text-xs text-neutral-400 hover:border-emerald-500/50 transition-all"
+                    >
+                      <span>{sectionLabels[hiddenKey] || hiddenKey}</span>
+                      <button
+                        onClick={() => onRestoreSection?.(hiddenKey)}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer"
+                        title="Hiển thị lại khối này lên trang"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Thêm lại</span>
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

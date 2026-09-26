@@ -2,8 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { Check, Truck, ShieldCheck, Zap } from 'lucide-react';
+import EditableText from '../common/EditableText';
 
-export default function VariantPicker({ product, selectedVariant, onSelectVariant, onBuyNow }) {
+export default function VariantPicker({ 
+  product, 
+  selectedVariant, 
+  onSelectVariant, 
+  onBuyNow,
+  isEditMode = false,
+  textOffsets = {},
+  onUpdateTextOffset
+}) {
   const { t } = useLanguage();
   const { formatPrice, currency } = useCurrency();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -61,12 +70,28 @@ export default function VariantPicker({ product, selectedVariant, onSelectVarian
         
         {/* Apple Style Buy Header */}
         <div className="space-y-2 text-start">
-          <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-[#f5f5f7]">
-            Buy {product.name}
-          </h2>
-          <p className="text-base text-[#86868b]">
-            From {formatPrice(currentPrice)} with Apple-grade warranty. Free express delivery.
-          </p>
+          <div>
+            <EditableText
+              id="config-header-title"
+              value={`Buy ${product.name}`}
+              isEditing={isEditMode}
+              offset={textOffsets?.['config-header-title']}
+              onOffsetChange={onUpdateTextOffset}
+              as="h2"
+              className="text-3xl sm:text-5xl font-bold tracking-tight text-[#f5f5f7]"
+            />
+          </div>
+          <div>
+            <EditableText
+              id="config-header-subtitle"
+              value={`From ${formatPrice(currentPrice)} with Apple-grade warranty. Free express delivery.`}
+              isEditing={isEditMode}
+              offset={textOffsets?.['config-header-subtitle']}
+              onOffsetChange={onUpdateTextOffset}
+              as="p"
+              className="text-base text-[#86868b]"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
