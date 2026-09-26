@@ -4,9 +4,16 @@ import { useLanguage } from '../../contexts/LanguageContext';
 export default function TechSpecs({ product }) {
   const { t } = useLanguage();
 
-  if (!product || !product.specifications) return null;
+  if (!product) return null;
 
-  const specs = Object.entries(product.specifications);
+  const rawSpecs = Object.entries(product.specifications || {});
+  const specs = rawSpecs.length > 0 ? rawSpecs : [
+    ["Model Identifier", product.slug?.toUpperCase() || 'FLAGSHIP-01'],
+    ["Available Finishes", product.variants?.map(v => v.attributes?.color).filter(Boolean).join(', ') || 'Space Black'],
+    ["Configuration Options", product.variants?.map(v => v.attributes?.storage).filter(Boolean).join(', ') || 'Standard'],
+    ["Inventory & Delivery", `${product.variants?.reduce((sum, v) => sum + (v.stock_quantity || 0), 0) || 10} units in stock • Free 24h shipping`],
+    ["Coverage", "2-Year global warranty with dedicated concierge support"]
+  ];
 
   return (
     <section id="specs" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0b0b0c] border-t border-[#1d1d1f] text-start">

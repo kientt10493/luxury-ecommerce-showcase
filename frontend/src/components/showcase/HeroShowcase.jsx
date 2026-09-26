@@ -58,6 +58,12 @@ export default function HeroShowcase({ product, allProducts = [], onSelectProduc
             {product.tagline}
           </p>
 
+          {product.description && (
+            <p className="text-sm sm:text-base text-[#a1a1a6] font-normal leading-relaxed max-w-2xl mx-auto pt-1">
+              {product.description}
+            </p>
+          )}
+
           {/* Pricing Tag */}
           <div className="pt-2 text-base text-[#86868b] flex items-center justify-center gap-2">
             <span>{t('hero.starting_at')}</span>
@@ -100,13 +106,13 @@ export default function HeroShowcase({ product, allProducts = [], onSelectProduc
               className="w-full h-full object-contain rounded-2xl transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             />
 
-            {/* Apple Floating Badges */}
-            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
-              <div className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl">
-                Titanium Frame • 448g
+            {/* Dynamic Apple Floating Badges */}
+            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none gap-2">
+              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%]">
+                {product.features?.[0] || Object.values(product.specifications || {})[0] || product.name}
               </div>
-              <div className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl">
-                Dual 4K Micro-OLED
+              <div className="px-4 py-2 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl truncate max-w-[48%]">
+                {product.features?.[1] || Object.values(product.specifications || {})[1] || 'Precision Craft'}
               </div>
             </div>
           </div>

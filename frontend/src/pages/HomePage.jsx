@@ -16,6 +16,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { currency, formatPrice } = useCurrency();
 
   const [products, setProducts] = useState([]);
+  const [activeProductId, setActiveProductId] = useState(null);
   const [activeProduct, setActiveProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,17 +28,24 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [vietQRData, setVietQRData] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
     setLoading(true);
+
     productApi.getProducts(language, currency)
       .then((res) => {
+        if (!isMounted) return;
         setProducts(res.data);
         if (res.data.length > 0) {
-          const currentId = activeProduct?.id || res.data[0].id;
-          return productApi.getProductDetail(currentId, language, currency);
+          const targetId = activeProductId || res.data[0].id;
+          if (!activeProductId) {
+            setActiveProductId(targetId);
+          }
+          return productApi.getProductDetail(targetId, language, currency);
         }
       })
       .then((detailRes) => {
-        if (detailRes) {
+        if (!isMounted) return;
+        if (detailRes && detailRes.data) {
           setActiveProduct(detailRes.data);
           if (detailRes.data.variants && detailRes.data.variants.length > 0) {
             setSelectedVariant(detailRes.data.variants[0]);
@@ -47,21 +55,16 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       })
       .catch((err) => {
         console.error('Failed to load products:', err);
-        setLoading(false);
+        if (isMounted) setLoading(false);
       });
-  }, [language, currency]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeProductId, language, currency]);
 
   const handleSelectProduct = (prod) => {
-    setLoading(true);
-    productApi.getProductDetail(prod.id, language, currency)
-      .then((res) => {
-        setActiveProduct(res.data);
-        if (res.data.variants && res.data.variants.length > 0) {
-          setSelectedVariant(res.data.variants[0]);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    setActiveProductId(prod.id);
   };
 
   const handleOpenQuickBuy = (productToBuy = null, variantToBuy = null) => {
@@ -118,7 +121,9 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           )}
 
           {/* Apple Bento Highlights */}
-          <BentoFeatures />
+          {activeProduct && (
+            <BentoFeatures product={activeProduct} />
+          )}
 
           {/* Apple Tech Specs */}
           {activeProduct && (

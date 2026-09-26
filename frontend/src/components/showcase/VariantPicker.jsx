@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { Check, Truck, ShieldCheck, Zap } from 'lucide-react';
@@ -7,6 +7,10 @@ export default function VariantPicker({ product, selectedVariant, onSelectVarian
   const { t } = useLanguage();
   const { formatPrice, currency } = useCurrency();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?.id]);
 
   if (!product || !product.variants || product.variants.length === 0) return null;
 
