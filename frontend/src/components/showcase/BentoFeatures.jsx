@@ -14,6 +14,7 @@ export default function BentoFeatures({
 
   if (!product) return null;
 
+  const features = product.features || [];
   const internalKeys = ['floating_images', 'section_order', 'canvas_elements'];
   const specs = product.specifications || {};
   const specEntries = Object.entries(specs).filter(([k, v]) => !internalKeys.includes(k) && typeof v !== 'object');
