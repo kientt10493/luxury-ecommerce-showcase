@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { productApi, adminApi } from '../services/api';
