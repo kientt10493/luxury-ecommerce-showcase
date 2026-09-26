@@ -1,11 +1,11 @@
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 class CreatePaymentRequest(BaseModel):
     product_id: int
     variant_id: Optional[int] = None
     customer_name: str
-    customer_email: EmailStr
+    customer_email: str
     customer_phone: str
     shipping_address: str = ""
     currency: str = "USD"

@@ -19,12 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.v1 import products, auth, admin
+from app.api.v1 import products, auth, admin, payments, orders, webhooks
 
 # Include Routers
 app.include_router(products.router, prefix=settings.API_V1_STR)
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(payments.router, prefix=settings.API_V1_STR)
+app.include_router(orders.router, prefix=settings.API_V1_STR)
+app.include_router(webhooks.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
