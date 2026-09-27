@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { Check, Truck, ShieldCheck, Zap, Palette, Plus, Settings } from 'lucide-react';
+import { Check, Truck, ShieldCheck, Zap, Palette, Plus, Settings, X } from 'lucide-react';
 import EditableText from '../common/EditableText';
 import ColorSwatchesModal from './ColorSwatchesModal';
 import { LUXURY_COLOR_PRESETS, getDefaultColorGradient } from './colorPresets';
