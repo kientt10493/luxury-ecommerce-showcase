@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { productApi, adminApi } from '../services/api';
-import Navbar from '../components/navbar/Navbar';
+import Navbar, { DEFAULT_SUBNAV_ITEMS } from '../components/navbar/Navbar';
 import HeroShowcase from '../components/showcase/HeroShowcase';
 import VariantPicker from '../components/showcase/VariantPicker';
 import BentoFeatures from '../components/showcase/BentoFeatures';
@@ -13,7 +13,18 @@ import LiveEditorBar from '../components/navbar/LiveEditorBar';
 import DraggableFloatingImage from '../components/common/DraggableFloatingImage';
 import CanvaOverlay from '../components/common/canva/CanvaOverlay';
 import CanvaBlockInspector from '../components/common/canva/CanvaBlockInspector';
+import EditableText from '../components/common/EditableText';
 import { Loader2, Shield, X, Key, Layers, ArrowUp, ArrowDown, GripVertical, Trash2, Sparkles } from 'lucide-react';
+
+const DEFAULT_PAGE_DIMENSIONS = {
+  widthMode: '100%',
+  customWidth: '100%',
+  minHeight: 'auto',
+  paddingX: 0,
+  paddingY: 0,
+  backgroundColor: '',
+  align: 'center'
+};
 
 export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const { language, t } = useLanguage();
@@ -37,6 +48,7 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   // Drag & drop floating images and section ordering state
   const [floatingImages, setFloatingImages] = useState([]);
   const [sectionOrder, setSectionOrder] = useState(['hero', 'configurator', 'bento', 'specs']);
+  const [subnavItems, setSubnavItems] = useState(DEFAULT_SUBNAV_ITEMS);
   const [draggedSectionIndex, setDraggedSectionIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
 
@@ -44,7 +56,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
   const [canvasElements, setCanvasElements] = useState([]);
   const [textOffsets, setTextOffsets] = useState({});
   const [blockStyles, setBlockStyles] = useState({});
+  const [textOverrides, setTextOverrides] = useState({});
   const [activeBlock, setActiveBlock] = useState(null);
+  const [pageDimensions, setPageDimensions] = useState(DEFAULT_PAGE_DIMENSIONS);
+  const [hiddenElements, setHiddenElements] = useState([]);
   const [isCanvaDrawerOpen, setIsCanvaDrawerOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -115,6 +130,62 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           } else {
             setBlockStyles({});
           }
+          if (prodData.specifications?.subnav_items && Array.isArray(prodData.specifications.subnav_items)) {
+            setSubnavItems(prodData.specifications.subnav_items);
+          } else {
+            const savedLocal = localStorage.getItem(`aura_subnav_items_${prodData.id}`);
+            if (savedLocal) {
+              try {
+                setSubnavItems(JSON.parse(savedLocal));
+              } catch (e) {
+                setSubnavItems(DEFAULT_SUBNAV_ITEMS);
+              }
+            } else {
+              setSubnavItems(DEFAULT_SUBNAV_ITEMS);
+            }
+          }
+          if (prodData.specifications?.text_overrides) {
+            setTextOverrides(prodData.specifications.text_overrides);
+          } else {
+            const savedOverrides = localStorage.getItem(`aura_text_overrides_${prodData.id}`);
+            if (savedOverrides) {
+              try {
+                setTextOverrides(JSON.parse(savedOverrides));
+              } catch (e) {
+                setTextOverrides({});
+              }
+            } else {
+              setTextOverrides({});
+            }
+          }
+          if (prodData.specifications?.page_dimensions) {
+            setPageDimensions({ ...DEFAULT_PAGE_DIMENSIONS, ...prodData.specifications.page_dimensions });
+          } else {
+            const savedDims = localStorage.getItem(`aura_page_dimensions_${prodData.id}`);
+            if (savedDims) {
+              try {
+                setPageDimensions({ ...DEFAULT_PAGE_DIMENSIONS, ...JSON.parse(savedDims) });
+              } catch (e) {
+                setPageDimensions(DEFAULT_PAGE_DIMENSIONS);
+              }
+            } else {
+              setPageDimensions(DEFAULT_PAGE_DIMENSIONS);
+            }
+          }
+          if (prodData.specifications?.hidden_elements && Array.isArray(prodData.specifications.hidden_elements)) {
+            setHiddenElements(prodData.specifications.hidden_elements);
+          } else {
+            const savedHidden = localStorage.getItem(`aura_hidden_elements_${prodData.id}`);
+            if (savedHidden) {
+              try {
+                setHiddenElements(JSON.parse(savedHidden));
+              } catch (e) {
+                setHiddenElements([]);
+              }
+            } else {
+              setHiddenElements([]);
+            }
+          }
         }
         setLoading(false);
       })
@@ -168,6 +239,26 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       ...prev,
       [field]: value
     }));
+    setHasChanges(true);
+  };
+
+  // Subnav items update handler
+  const handleUpdateSubnavItems = (newItems) => {
+    setSubnavItems(newItems);
+    if (activeProduct) {
+      try {
+        localStorage.setItem(`aura_subnav_items_${activeProduct.id}`, JSON.stringify(newItems));
+      } catch (e) {
+        // ignore storage errors
+      }
+      setActiveProduct((prev) => ({
+        ...prev,
+        specifications: {
+          ...(prev.specifications || {}),
+          subnav_items: newItems
+        }
+      }));
+    }
     setHasChanges(true);
   };
 
@@ -328,16 +419,152 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setHasChanges(true);
   };
 
-  const handleSelectBlock = (blockInfo) => {
-    setActiveBlock(blockInfo);
+  // In-place text overrides handler
+  const handleUpdateTextOverride = (id, value) => {
+    setTextOverrides((prev) => {
+      const next = {
+        ...prev,
+        [id]: value
+      };
+      if (activeProduct) {
+        try {
+          localStorage.setItem(`aura_text_overrides_${activeProduct.id}`, JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+    setHasChanges(true);
   };
+
+  const handleSelectBlock = (blockInfo) => {
+    if (blockInfo && blockInfo.id && textOverrides[blockInfo.id] !== undefined) {
+      blockInfo = {
+        ...blockInfo,
+        value: textOverrides[blockInfo.id]
+      };
+    }
+    setActiveBlock(blockInfo);
+    if (blockInfo) {
+      setIsCanvaDrawerOpen(true);
+    }
+  };
+
+  // Canva Studio page dimensions handler
+  const handleUpdatePageDimensions = (dims) => {
+    setPageDimensions((prev) => {
+      const next = typeof dims === 'function' ? dims(prev) : { ...prev, ...dims };
+      if (activeProduct) {
+        try {
+          localStorage.setItem(`aura_page_dimensions_${activeProduct.id}`, JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+    setHasChanges(true);
+  };
+
+  // Universal element delete / hide handler
+  const handleDeleteElement = (id) => {
+    if (!id) return;
+    // If it's a dynamic canvas element
+    if (canvasElements.some(el => el.id === id)) {
+      setCanvasElements(prev => prev.filter(el => el.id !== id));
+      if (activeBlock?.id === id) setActiveBlock(null);
+      setHasChanges(true);
+      return;
+    }
+    // Otherwise it's a native page element
+    setHiddenElements((prev) => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      if (activeProduct) {
+        try {
+          localStorage.setItem(`aura_hidden_elements_${activeProduct.id}`, JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+    if (activeBlock?.id === id) {
+      setActiveBlock(null);
+    }
+    setHasChanges(true);
+  };
+
+  // Universal element restore handler
+  const handleRestoreElement = (id) => {
+    setHiddenElements((prev) => {
+      const next = prev.filter(elId => elId !== id);
+      if (activeProduct) {
+        try {
+          localStorage.setItem(`aura_hidden_elements_${activeProduct.id}`, JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
+    setHasChanges(true);
+  };
+
+  const handleRestoreAllElements = () => {
+    setHiddenElements([]);
+    if (activeProduct) {
+      try {
+        localStorage.removeItem(`aura_hidden_elements_${activeProduct.id}`);
+      } catch (e) {}
+    }
+    setHasChanges(true);
+  };
+
+  // Universal element duplicate handler
+  const handleDuplicateElement = (id) => {
+    if (!id) return;
+    const targetElement = canvasElements.find(el => el.id === id);
+    if (targetElement) {
+      const newElement = {
+        ...targetElement,
+        id: `el-${Date.now()}`,
+        x: (targetElement.x || 100) + 24,
+        y: (targetElement.y || 100) + 24,
+        style: { ...(targetElement.style || {}) }
+      };
+      setCanvasElements(prev => [...prev, newElement]);
+      setActiveBlock({
+        id: newElement.id,
+        type: newElement.type || 'Phần Tử Mới',
+        label: newElement.label || newElement.content || 'Phần Tử Nhân Bản',
+        style: newElement.style || {},
+        value: newElement.content || ''
+      });
+      setHasChanges(true);
+    }
+  };
+
+  // Global Delete / Backspace keyboard listener when activeBlock is selected
+  useEffect(() => {
+    if (!isEditMode || !activeBlock?.id) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tag = activeEl.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || activeEl.isContentEditable) {
+          return;
+        }
+      }
+      e.preventDefault();
+      handleDeleteElement(activeBlock.id);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditMode, activeBlock, canvasElements, activeProduct]);
 
   // Hardware specifications map update handler
   const handleUpdateSpecsMap = (newSpecsMap) => {
     setActiveProduct((prev) => {
       const existing = prev.specifications || {};
       const internalPreserved = {};
-      ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles'].forEach((k) => {
+      ['floating_images', 'section_order', 'canvas_elements', 'text_offsets', 'block_styles', 'subnav_items', 'text_overrides', 'page_dimensions', 'hidden_elements'].forEach((k) => {
         if (existing[k] !== undefined) internalPreserved[k] = existing[k];
       });
       return {
@@ -459,7 +686,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         section_order: sectionOrder,
         canvas_elements: canvasElements,
         text_offsets: textOffsets,
-        block_styles: blockStyles
+        block_styles: blockStyles,
+        subnav_items: subnavItems,
+        text_overrides: textOverrides,
+        page_dimensions: pageDimensions,
+        hidden_elements: hiddenElements
       };
 
       // Construct clean payload strictly conforming to ProductCreateRequest schema
@@ -524,7 +755,20 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
       await adminApi.updateProduct(activeProduct.id, payload);
       setHasChanges(false);
-      alert('✅ Đã lưu trực tiếp toàn bộ nội dung, ảnh tải lên và vị trí các khối thành công vào cơ sở dữ liệu!');
+
+      // Re-sync current product and list to stay 100% in sync without creating duplicates
+      try {
+        const [detailRes, listRes] = await Promise.all([
+          productApi.getProductDetail(activeProduct.id, language, currency),
+          productApi.getProducts(language, currency)
+        ]);
+        if (detailRes?.data) setActiveProduct(detailRes.data);
+        if (listRes?.data) setProducts(listRes.data);
+      } catch (syncErr) {
+        console.warn('Re-sync after save:', syncErr);
+      }
+
+      alert('✅ Đã cập nhật và lưu thay đổi thành công vào sản phẩm hiện tại!');
     } catch (err) {
       console.error('Error saving live edits:', err);
       const detailMsg = err.response?.data?.detail;
@@ -564,6 +808,26 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           } else {
             setBlockStyles({});
           }
+          if (res.data.specifications?.text_overrides) {
+            setTextOverrides(res.data.specifications.text_overrides);
+          } else {
+            setTextOverrides({});
+          }
+          if (res.data.specifications?.subnav_items) {
+            setSubnavItems(res.data.specifications.subnav_items);
+          } else {
+            setSubnavItems(DEFAULT_SUBNAV_ITEMS);
+          }
+          if (res.data.specifications?.page_dimensions) {
+            setPageDimensions({ ...DEFAULT_PAGE_DIMENSIONS, ...res.data.specifications.page_dimensions });
+          } else {
+            setPageDimensions(DEFAULT_PAGE_DIMENSIONS);
+          }
+          if (res.data.specifications?.hidden_elements && Array.isArray(res.data.specifications.hidden_elements)) {
+            setHiddenElements(res.data.specifications.hidden_elements);
+          } else {
+            setHiddenElements([]);
+          }
           setHasChanges(false);
           setLoading(false);
         })
@@ -584,6 +848,34 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
     setVietQRData(qrPaymentData);
   };
 
+  const getPageCanvasStyle = () => {
+    const isCustom = pageDimensions.widthMode === 'custom';
+    let targetWidth = '100%';
+    if (isCustom && pageDimensions.customWidth) {
+      targetWidth = `${pageDimensions.customWidth}px`;
+    } else if (pageDimensions.widthMode && pageDimensions.widthMode !== '100%') {
+      targetWidth = pageDimensions.widthMode;
+    }
+
+    const isCentered = pageDimensions.align === 'center';
+    const isRight = pageDimensions.align === 'right';
+
+    return {
+      maxWidth: targetWidth === '100%' ? '100%' : targetWidth,
+      width: '100%',
+      marginLeft: isRight ? 'auto' : (isCentered ? 'auto' : '0'),
+      marginRight: isCentered ? 'auto' : (isRight ? '0' : 'auto'),
+      minHeight: pageDimensions.minHeight && pageDimensions.minHeight !== 'auto' ? `${pageDimensions.minHeight}px` : undefined,
+      paddingLeft: pageDimensions.paddingX ? `${pageDimensions.paddingX}px` : undefined,
+      paddingRight: pageDimensions.paddingX ? `${pageDimensions.paddingX}px` : undefined,
+      paddingTop: pageDimensions.paddingY ? `${pageDimensions.paddingY}px` : undefined,
+      paddingBottom: pageDimensions.paddingY ? `${pageDimensions.paddingY}px` : undefined,
+      backgroundColor: pageDimensions.backgroundColor || undefined,
+      transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), min-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.2s ease, background-color 0.2s ease',
+      boxShadow: targetWidth !== '100%' ? '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)' : undefined
+    };
+  };
+
   return (
     <div className="min-h-screen bg-black text-[#f5f5f7]">
       
@@ -597,6 +889,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
         isCurrentAdmin={false}
         onToggleLiveEdit={handleToggleLiveEdit}
         isLiveEditActive={isEditMode}
+        subnavItems={subnavItems}
+        onUpdateSubnavItems={handleUpdateSubnavItems}
       />
 
       {loading && !activeProduct ? (
@@ -607,8 +901,8 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
           </span>
         </div>
       ) : (
-        <main className="relative">
-          {/* Canva Studio Visual Overlay */}
+        <main id="page-canvas-wrapper" className="relative" style={getPageCanvasStyle()}>
+          {/* Canva Studio Visual Overlay with Unified Assets & Block Inspector Drawer */}
           <CanvaOverlay
             elements={canvasElements}
             onChangeElements={handleCanvasElementsChange}
@@ -617,18 +911,22 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
             onCloseDrawer={() => setIsCanvaDrawerOpen(false)}
             onOpenDrawer={() => setIsCanvaDrawerOpen(true)}
             onHistoryStateChange={handleHistoryStateChange}
+            activeBlock={activeBlock}
+            blockStyles={blockStyles}
+            onUpdateBlockStyle={handleUpdateBlockStyle}
+            onResetBlockStyle={handleResetBlockStyle}
+            onClearActiveBlock={() => setActiveBlock(null)}
+            sectionOrder={sectionOrder}
+            onMoveSection={handleMoveSection}
+            onSelectBlock={handleSelectBlock}
+            pageDimensions={pageDimensions}
+            onUpdatePageDimensions={handleUpdatePageDimensions}
+            hiddenElements={hiddenElements}
+            onRestoreElement={handleRestoreElement}
+            onRestoreAllElements={handleRestoreAllElements}
+            onDeleteElement={handleDeleteElement}
+            onDuplicateElement={handleDuplicateElement}
           />
-
-          {/* Floating Canva Studio Block Inspector when any block or text is clicked */}
-          {isEditMode && activeBlock && (
-            <CanvaBlockInspector
-              activeBlock={activeBlock}
-              blockStyle={blockStyles[activeBlock.id] || {}}
-              onUpdateStyle={(patch) => handleUpdateBlockStyle(activeBlock.id, patch)}
-              onResetStyle={() => handleResetBlockStyle(activeBlock.id)}
-              onClose={() => setActiveBlock(null)}
-            />
-          )}
 
           {/* Dynamic Section Ordering with Direct Visual Controls */}
           {sectionOrder.map((sectionKey, secIndex) => {
@@ -655,18 +953,32 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
 
             const renderSectionControl = () => {
               if (!isEditMode) return null;
+              const currentSectionTitle = textOverrides?.[`section-label-${sectionKey}`] || sectionLabels[sectionKey] || sectionKey;
               return (
                 <div className="sticky top-24 z-30 max-w-5xl mx-auto px-4 pt-3 pb-1">
                   <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 rounded-2xl bg-[#161617]/95 backdrop-blur-xl border border-[#0071e3]/40 shadow-2xl ring-1 ring-[#0071e3]/20 text-xs text-white">
-                    <div 
-                      draggable
-                      onDragStart={(e) => handleSectionDragStart(e, secIndex)}
-                      onDragEnd={handleSectionDragEnd}
-                      className="flex items-center gap-2 font-semibold text-[#2997ff] cursor-grab active:cursor-grabbing px-2 py-1 rounded-lg hover:bg-white/10 transition-colors select-none"
-                      title="Giữ chuột và kéo để đổi vị trí khối này lên trên hoặc xuống dưới"
-                    >
-                      <GripVertical className="w-4 h-4 text-[#2997ff]" />
-                      <span>Vị trí #{secIndex + 1}: {sectionLabels[sectionKey] || sectionKey}</span>
+                    <div className="flex items-center gap-2 font-semibold text-[#2997ff] px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">
+                      <div 
+                        draggable
+                        onDragStart={(e) => handleSectionDragStart(e, secIndex)}
+                        onDragEnd={handleSectionDragEnd}
+                        className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none"
+                        title="Giữ chuột và kéo để đổi vị trí khối này lên trên hoặc xuống dưới"
+                      >
+                        <GripVertical className="w-4 h-4 text-[#2997ff]" />
+                        <span>Vị trí #{secIndex + 1}:</span>
+                      </div>
+                      <EditableText
+                        id={`section-label-${sectionKey}`}
+                        value={currentSectionTitle}
+                        isEditing={isEditMode}
+                        onChange={(val) => handleUpdateTextOverride(`section-label-${sectionKey}`, val)}
+                        onSelectBlock={handleSelectBlock}
+                        isSelected={activeBlock?.id === `section-label-${sectionKey}`}
+                        blockStyle={blockStyles?.[`section-label-${sectionKey}`]}
+                        allowDrag={false}
+                        className="font-semibold text-[#2997ff]"
+                      />
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -676,7 +988,11 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                         onClick={() => handleSelectBlock({
                           id: `section-${sectionKey}`,
                           type: 'Khối Section',
-                          label: sectionLabels[sectionKey] || sectionKey,
+                          label: currentSectionTitle,
+                          value: currentSectionTitle,
+                          onUpdateText: (val) => handleUpdateTextOverride(`section-label-${sectionKey}`, val),
+                          sectionKey: sectionKey,
+                          secIndex: secIndex,
                           style: blockStyles[`section-${sectionKey}`] || {}
                         })}
                         className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all cursor-pointer font-medium text-xs shadow ${
@@ -757,6 +1073,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     blockStyles={blockStyles}
                     activeBlockId={activeBlock?.id}
                     onSelectBlock={handleSelectBlock}
+                    textOverrides={textOverrides}
+                    onUpdateTextOverride={handleUpdateTextOverride}
+                    hiddenElements={hiddenElements}
+                    onDeleteElement={handleDeleteElement}
                   />
                 </div>
               );
@@ -777,6 +1097,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     blockStyles={blockStyles}
                     activeBlockId={activeBlock?.id}
                     onSelectBlock={handleSelectBlock}
+                    textOverrides={textOverrides}
+                    onUpdateTextOverride={handleUpdateTextOverride}
+                    hiddenElements={hiddenElements}
+                    onDeleteElement={handleDeleteElement}
                   />
                 </div>
               );
@@ -797,6 +1121,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     blockStyles={blockStyles}
                     activeBlockId={activeBlock?.id}
                     onSelectBlock={handleSelectBlock}
+                    textOverrides={textOverrides}
+                    onUpdateTextOverride={handleUpdateTextOverride}
+                    hiddenElements={hiddenElements}
+                    onDeleteElement={handleDeleteElement}
                   />
                 </div>
               );
@@ -815,6 +1143,10 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
                     blockStyles={blockStyles}
                     activeBlockId={activeBlock?.id}
                     onSelectBlock={handleSelectBlock}
+                    textOverrides={textOverrides}
+                    onUpdateTextOverride={handleUpdateTextOverride}
+                    hiddenElements={hiddenElements}
+                    onDeleteElement={handleDeleteElement}
                   />
                 </div>
               );
@@ -859,25 +1191,102 @@ export default function HomePage({ onNavigateAdmin, onOrderSuccess }) {
       />
 
       {/* Apple Iconic Footer */}
-      <footer className="border-t border-[#1d1d1f] bg-[#0b0b0c] py-12 px-4 sm:px-6 lg:px-8 text-xs text-[#6e6e73]">
+      <footer 
+        style={{
+          ...(blockStyles?.['page-footer'] || {})
+        }}
+        onClick={(e) => {
+          if (isEditMode && e.target === e.currentTarget) {
+            handleSelectBlock({
+              id: 'page-footer',
+              type: 'Chân Trang',
+              label: 'Chân Trang (Footer)',
+              style: blockStyles?.['page-footer'] || {}
+            });
+          }
+        }}
+        className={`border-t border-[#1d1d1f] bg-[#0b0b0c] py-12 px-4 sm:px-6 lg:px-8 text-xs text-[#6e6e73] transition-all ${
+          activeBlock?.id === 'page-footer' ? 'ring-2 ring-[#0071e3]' : ''
+        }`}
+      >
         <div className="max-w-5xl mx-auto space-y-4">
-          <p className="border-b border-[#1d1d1f] pb-4 leading-relaxed font-light">
-            1. Trade‑in values will vary based on the condition, year, and configuration of your eligible trade‑in device. Not all devices are eligible for credit. Prices quoted are inclusive of local taxes where applicable.
-          </p>
+          <EditableText
+            id="footer-disclaimer"
+            value={textOverrides?.['footer-disclaimer'] ?? "1. Trade‑in values will vary based on the condition, year, and configuration of your eligible trade‑in device. Not all devices are eligible for credit. Prices quoted are inclusive of local taxes where applicable."}
+            isEditing={isEditMode}
+            onChange={(val) => handleUpdateTextOverride('footer-disclaimer', val)}
+            onSelectBlock={handleSelectBlock}
+            isSelected={activeBlock?.id === 'footer-disclaimer'}
+            blockStyle={blockStyles?.['footer-disclaimer']}
+            allowDrag={false}
+            as="p"
+            multiline={true}
+            className="border-b border-[#1d1d1f] pb-4 leading-relaxed font-light text-[#6e6e73]"
+          />
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
             <div>
-              Copyright © 2026 AURA Inc. All rights reserved.
+              <EditableText
+                id="footer-copyright"
+                value={textOverrides?.['footer-copyright'] ?? "Copyright © 2026 AURA Inc. All rights reserved."}
+                isEditing={isEditMode}
+                onChange={(val) => handleUpdateTextOverride('footer-copyright', val)}
+                onSelectBlock={handleSelectBlock}
+                isSelected={activeBlock?.id === 'footer-copyright'}
+                blockStyle={blockStyles?.['footer-copyright']}
+                allowDrag={false}
+                className="text-[#6e6e73]"
+              />
             </div>
 
-            <div className="flex items-center gap-4 text-[#86868b]">
-              <a href="#" className="hover:underline">Privacy Policy</a>
+            <div className="flex items-center gap-4 text-[#86868b] flex-wrap">
+              <EditableText
+                id="footer-link-privacy"
+                value={textOverrides?.['footer-link-privacy'] ?? "Privacy Policy"}
+                isEditing={isEditMode}
+                onChange={(val) => handleUpdateTextOverride('footer-link-privacy', val)}
+                onSelectBlock={handleSelectBlock}
+                isSelected={activeBlock?.id === 'footer-link-privacy'}
+                blockStyle={blockStyles?.['footer-link-privacy']}
+                allowDrag={false}
+                className="hover:underline cursor-pointer"
+              />
               <span>|</span>
-              <a href="#" className="hover:underline">Terms of Use</a>
+              <EditableText
+                id="footer-link-terms"
+                value={textOverrides?.['footer-link-terms'] ?? "Terms of Use"}
+                isEditing={isEditMode}
+                onChange={(val) => handleUpdateTextOverride('footer-link-terms', val)}
+                onSelectBlock={handleSelectBlock}
+                isSelected={activeBlock?.id === 'footer-link-terms'}
+                blockStyle={blockStyles?.['footer-link-terms']}
+                allowDrag={false}
+                className="hover:underline cursor-pointer"
+              />
               <span>|</span>
-              <a href="#" className="hover:underline">Sales Policy</a>
+              <EditableText
+                id="footer-link-sales"
+                value={textOverrides?.['footer-link-sales'] ?? "Sales Policy"}
+                isEditing={isEditMode}
+                onChange={(val) => handleUpdateTextOverride('footer-link-sales', val)}
+                onSelectBlock={handleSelectBlock}
+                isSelected={activeBlock?.id === 'footer-link-sales'}
+                blockStyle={blockStyles?.['footer-link-sales']}
+                allowDrag={false}
+                className="hover:underline cursor-pointer"
+              />
               <span>|</span>
-              <a href="#" className="hover:underline">Legal</a>
+              <EditableText
+                id="footer-link-legal"
+                value={textOverrides?.['footer-link-legal'] ?? "Legal"}
+                isEditing={isEditMode}
+                onChange={(val) => handleUpdateTextOverride('footer-link-legal', val)}
+                onSelectBlock={handleSelectBlock}
+                isSelected={activeBlock?.id === 'footer-link-legal'}
+                blockStyle={blockStyles?.['footer-link-legal']}
+                allowDrag={false}
+                className="hover:underline cursor-pointer"
+              />
             </div>
           </div>
         </div>

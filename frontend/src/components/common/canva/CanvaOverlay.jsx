@@ -11,7 +11,22 @@ export default function CanvaOverlay({
   isDrawerOpen = false,
   onCloseDrawer,
   onOpenDrawer,
-  onHistoryStateChange
+  onHistoryStateChange,
+  activeBlock = null,
+  blockStyles = {},
+  onUpdateBlockStyle,
+  onResetBlockStyle,
+  onClearActiveBlock,
+  sectionOrder = ['hero', 'configurator', 'bento', 'specs'],
+  onMoveSection,
+  onSelectBlock,
+  pageDimensions,
+  onUpdatePageDimensions,
+  hiddenElements = [],
+  onRestoreElement,
+  onRestoreAllElements,
+  onDeleteElement,
+  onDuplicateElement
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [history, setHistory] = useState([]);
@@ -203,6 +218,14 @@ export default function CanvaOverlay({
     return () => window.removeEventListener('pointerdown', handlePointerDownOutside);
   }, [isEditMode, selectedId]);
 
+  // Auto-open the left drawer whenever a canvas element is selected in edit mode
+  useEffect(() => {
+    if (selectedId && isEditMode) {
+      onOpenDrawer?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, isEditMode]);
+
   // 3. Canvas Element Modifiers (All defensively handling ID & snapshot control)
   const handleUpdateTransform = (id, transform, recordSnapshot = true) => {
     if (recordSnapshot) {
@@ -288,6 +311,13 @@ export default function CanvaOverlay({
     const filtered = elements.filter((el) => el.id !== targetId);
     if (selectedId === targetId) setSelectedId(null);
     onChangeElements?.(filtered);
+  };
+
+  const handleUpdateAnchor = (id, anchor) => {
+    const updated = elements.map((el) =>
+      el.id === id ? { ...el, anchor: anchor || null } : el
+    );
+    onChangeElements?.(updated);
   };
 
   // Helper to place new elements directly in current user viewport
@@ -573,6 +603,15 @@ export default function CanvaOverlay({
     onChangeElements?.(updated);
   };
 
+  // Compute all page anchors for the button link picker
+  const allAnchors = elements
+    .filter((el) => el.anchor)
+    .map((el) => ({
+      anchor: el.anchor,
+      type: el.type,
+      label: typeof el.content === 'string' ? el.content.slice(0, 25) : el.type
+    }));
+
   // If NOT in Edit Mode, render static luxury elements for site visitors
   if (!isEditMode) {
     if (!elements || elements.length === 0) return null;
@@ -583,6 +622,7 @@ export default function CanvaOverlay({
           return (
             <div
               key={el.id}
+              id={el.anchor || undefined}
               className="absolute pointer-events-auto transition-transform duration-200"
               style={{
                 left: `${el.x}px`,
@@ -635,7 +675,17 @@ export default function CanvaOverlay({
 
               {el.type === 'button' && (
                 <a
-                  href={el.style?.link || '#configuration'}
+                  href={el.style?.link || '#'}
+                  onClick={(e) => {
+                    const link = el.style?.link;
+                    if (link && link.startsWith('#')) {
+                      e.preventDefault();
+                      const target = document.getElementById(link.slice(1));
+                      if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }
+                  }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -759,6 +809,8 @@ export default function CanvaOverlay({
             onSendBackward={handleSendBackward}
             onDuplicate={handleDuplicate}
             onDelete={handleDelete}
+            onUpdateAnchor={(anchor) => handleUpdateAnchor(el.id, anchor)}
+            allAnchors={allAnchors}
           />
         ))}
       </div>
@@ -775,6 +827,30 @@ export default function CanvaOverlay({
         onAddSymbol={handleAddSymbol}
         onAddImage={handleAddImage}
         onAddSlider={handleAddSlider}
+        selectedElement={selectedId ? elements.find((el) => el.id === selectedId) || null : null}
+        onUpdateStyle={(patch) => handleUpdateStyle(selectedId, patch)}
+        onUpdateContent={(val) => handleUpdateContent(selectedId, val)}
+        onUpdateAnchor={(anchor) => handleUpdateAnchor(selectedId, anchor)}
+        onDuplicate={() => handleDuplicate(selectedId)}
+        onDelete={() => handleDelete(selectedId)}
+        onBringForward={() => handleBringForward(selectedId)}
+        onSendBackward={() => handleSendBackward(selectedId)}
+        allAnchors={allAnchors}
+        activeBlock={activeBlock}
+        blockStyles={blockStyles}
+        onUpdateBlockStyle={onUpdateBlockStyle}
+        onResetBlockStyle={onResetBlockStyle}
+        onClearActiveBlock={onClearActiveBlock}
+        sectionOrder={sectionOrder}
+        onMoveSection={onMoveSection}
+        onSelectBlock={onSelectBlock}
+        pageDimensions={pageDimensions}
+        onUpdatePageDimensions={onUpdatePageDimensions}
+        hiddenElements={hiddenElements}
+        onRestoreElement={onRestoreElement}
+        onRestoreAllElements={onRestoreAllElements}
+        onDeleteElement={onDeleteElement}
+        onDuplicateElement={onDuplicateElement}
       />
     </>
   );
