@@ -11,7 +11,11 @@ export default function TechSpecs({
   onUpdateTextOffset,
   blockStyles = {},
   activeBlockId,
-  onSelectBlock
+  onSelectBlock,
+  textOverrides = {},
+  onUpdateTextOverride,
+  hiddenElements = [],
+  onDeleteElement
 }) {
   const { t } = useLanguage();
 
@@ -67,46 +71,108 @@ export default function TechSpecs({
         
         {/* Header */}
         <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#86868b]">
-            Specifications
-          </div>
-          <div>
-            <EditableText
-              id="specs-section-title"
-              value={`${product.name} Tech Specs`}
-              isEditing={isEditMode}
-              blockStyle={blockStyles?.['specs-section-title']}
-              isSelected={activeBlockId === 'specs-section-title'}
-              onSelectBlock={onSelectBlock}
-              offset={textOffsets?.['specs-section-title']}
-              onOffsetChange={onUpdateTextOffset}
-              as="h2"
-              className="text-3xl sm:text-5xl font-bold tracking-tight text-[#f5f5f7]"
-            />
-          </div>
-          <div>
-            <EditableText
-              id="specs-section-subtitle"
-              value={t('specs.subtitle')}
-              isEditing={isEditMode}
-              blockStyle={blockStyles?.['specs-section-subtitle']}
-              isSelected={activeBlockId === 'specs-section-subtitle'}
-              onSelectBlock={onSelectBlock}
-              offset={textOffsets?.['specs-section-subtitle']}
-              onOffsetChange={onUpdateTextOffset}
-              as="p"
-              className="text-base text-[#86868b]"
-            />
-          </div>
+          {!hiddenElements.includes('specs-category-eyebrow') && (
+            <div className="relative group/spec-eyebrow inline-block">
+              <EditableText
+                id="specs-category-eyebrow"
+                value={textOverrides?.['specs-category-eyebrow'] ?? "Specifications"}
+                isEditing={isEditMode}
+                blockStyle={blockStyles?.['specs-category-eyebrow']}
+                isSelected={activeBlockId === 'specs-category-eyebrow'}
+                onSelectBlock={onSelectBlock}
+                onChange={(val) => onUpdateTextOverride?.('specs-category-eyebrow', val)}
+                offset={textOffsets?.['specs-category-eyebrow']}
+                onOffsetChange={onUpdateTextOffset}
+                as="div"
+                className="text-xs font-semibold uppercase tracking-wider text-[#86868b]"
+              />
+              {isEditMode && onDeleteElement && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteElement('specs-category-eyebrow');
+                  }}
+                  className="absolute -top-2 -right-3 z-20 w-4 h-4 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] shadow opacity-0 group-hover/spec-eyebrow:opacity-100 transition-opacity cursor-pointer"
+                  title="Xóa / Ẩn (khôi phục trong Canva Studio)"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
+          {!hiddenElements.includes('specs-section-title') && (
+            <div className="relative group/spec-title">
+              <EditableText
+                id="specs-section-title"
+                value={textOverrides?.['specs-section-title'] ?? `${product.name} Tech Specs`}
+                isEditing={isEditMode}
+                blockStyle={blockStyles?.['specs-section-title']}
+                isSelected={activeBlockId === 'specs-section-title'}
+                onSelectBlock={onSelectBlock}
+                onChange={(val) => onUpdateTextOverride?.('specs-section-title', val)}
+                offset={textOffsets?.['specs-section-title']}
+                onOffsetChange={onUpdateTextOffset}
+                as="h2"
+                className="text-3xl sm:text-5xl font-bold tracking-tight text-[#f5f5f7]"
+              />
+              {isEditMode && onDeleteElement && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteElement('specs-section-title');
+                  }}
+                  className="absolute -top-2 -right-3 z-20 w-4 h-4 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] shadow opacity-0 group-hover/spec-title:opacity-100 transition-opacity cursor-pointer"
+                  title="Xóa / Ẩn tiêu đề (khôi phục trong Canva Studio)"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
+          {!hiddenElements.includes('specs-section-subtitle') && (
+            <div className="relative group/spec-sub">
+              <EditableText
+                id="specs-section-subtitle"
+                value={textOverrides?.['specs-section-subtitle'] ?? t('specs.subtitle')}
+                isEditing={isEditMode}
+                blockStyle={blockStyles?.['specs-section-subtitle']}
+                isSelected={activeBlockId === 'specs-section-subtitle'}
+                onSelectBlock={onSelectBlock}
+                onChange={(val) => onUpdateTextOverride?.('specs-section-subtitle', val)}
+                offset={textOffsets?.['specs-section-subtitle']}
+                onOffsetChange={onUpdateTextOffset}
+                as="p"
+                className="text-base text-[#86868b]"
+              />
+              {isEditMode && onDeleteElement && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteElement('specs-section-subtitle');
+                  }}
+                  className="absolute -top-2 -right-3 z-20 w-4 h-4 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] shadow opacity-0 group-hover/spec-sub:opacity-100 transition-opacity cursor-pointer"
+                  title="Xóa / Ẩn phụ đề (khôi phục trong Canva Studio)"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Minimalist Apple Specs List with Hairline Dividers */}
+        {!hiddenElements.includes('specs-table-card') && (
         <div 
           style={{
             ...(blockStyles?.['specs-table-card'] || {})
           }}
-          onClick={() => {
-            if (isEditMode) {
+          onClick={(e) => {
+            if (isEditMode && e.target === e.currentTarget) {
               onSelectBlock?.({
                 id: 'specs-table-card',
                 type: 'Bảng Thông Số',
@@ -115,7 +181,7 @@ export default function TechSpecs({
               });
             }
           }}
-          className={`border-t border-[#333336] divide-y divide-[#262629] transition-all rounded-2xl ${
+          className={`relative group/spec-table border-t border-[#333336] divide-y divide-[#262629] transition-all rounded-2xl ${
             activeBlockId === 'specs-table-card'
               ? 'ring-2 ring-[#0071e3] p-4 bg-white/5'
               : isEditMode
@@ -124,6 +190,19 @@ export default function TechSpecs({
           }`}
           title={isEditMode ? 'Nhấp để đổi nền, viền và kiểu dáng bảng thông số bằng Canva Studio' : undefined}
         >
+          {isEditMode && onDeleteElement && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteElement('specs-table-card');
+              }}
+              className="absolute top-2 right-2 z-30 px-2 py-0.5 rounded-md bg-rose-500/80 hover:bg-rose-600 text-white text-[11px] font-medium shadow flex items-center gap-1 opacity-0 group-hover/spec-table:opacity-100 transition-opacity cursor-pointer"
+              title="Ẩn toàn bộ Bảng Thông Số này (khôi phục trong Canva Studio)"
+            >
+              ✕ Ẩn bảng
+            </button>
+          )}
           {specs.map(([label, value], idx) => (
             <div
               key={`${label}-${idx}`}
@@ -175,6 +254,7 @@ export default function TechSpecs({
             </div>
           ))}
         </div>
+        )}
 
         {/* Add Row Button in Edit Mode */}
         {isEditMode && (
