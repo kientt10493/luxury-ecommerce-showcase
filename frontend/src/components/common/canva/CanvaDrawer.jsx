@@ -382,7 +382,9 @@ export default function CanvaDrawer({
   onUpdatePageDimensions,
   hiddenElements = [],
   onRestoreElement,
-  onRestoreAllElements
+  onRestoreAllElements,
+  onDeleteBlock,
+  onDuplicateBlock
 }) {
   const [activeTab, setActiveTab] = useState(activeBlock ? 'block' : 'page');
   const [selectedButtonCategory, setSelectedButtonCategory] = useState('all');
@@ -685,6 +687,11 @@ export default function CanvaDrawer({
                 onClose={onClearActiveBlock}
                 sectionOrder={sectionOrder}
                 onMoveSection={onMoveSection}
+                onDeleteBlock={(id) => {
+                  onDeleteBlock?.(id);
+                  onClearActiveBlock?.();
+                }}
+                onDuplicateBlock={onDuplicateBlock}
               />
             </div>
           )}
