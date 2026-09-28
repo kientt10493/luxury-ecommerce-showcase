@@ -48,4 +48,8 @@ def test_create_and_query_product_with_translations_and_variants():
         assert len(saved.variants[0].prices) == 3
         assert saved.translations[0].features == ["8K Display"]
     finally:
+        saved = db.query(Product).filter_by(slug=slug).first()
+        if saved:
+            db.delete(saved)
+            db.commit()
         db.close()

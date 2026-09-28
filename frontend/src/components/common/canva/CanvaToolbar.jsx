@@ -21,7 +21,8 @@ import {
   Loader2,
   Film,
   Link as LinkIcon,
-  Palette
+  Palette,
+  Tag
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 
@@ -61,11 +62,17 @@ export default function CanvaToolbar({
   onBringForward,
   onSendBackward,
   onDuplicate,
-  onDelete
+  onDelete,
+  onUpdateAnchor,
+  allAnchors = []
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showSlideManager, setShowSlideManager] = useState(false);
+  const [showAnchorEditor, setShowAnchorEditor] = useState(false);
+  const [anchorInput, setAnchorInput] = useState('');
+  const [showLinkEditor, setShowLinkEditor] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
   const [newSlideUrl, setNewSlideUrl] = useState('');
   const [isUploadingMultiple, setIsUploadingMultiple] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -88,6 +95,17 @@ export default function CanvaToolbar({
 
   const handleOpacityChange = (val) => {
     onUpdateStyle?.({ opacity: Math.max(0.1, Math.min(1, val / 100)) });
+  };
+
+  const handleAnchorSave = () => {
+    const slug = anchorInput.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
+    onUpdateAnchor?.(slug || null);
+    setShowAnchorEditor(false);
+  };
+
+  const handleAnchorClear = () => {
+    onUpdateAnchor?.(null);
+    setShowAnchorEditor(false);
   };
 
   const handleMultiUpload = async (e) => {
@@ -518,21 +536,96 @@ export default function CanvaToolbar({
       {/* 2c. Button (CTA) Specific Controls */}
       {element.type === 'button' && (
         <div className="flex items-center gap-1.5 px-1">
-          {/* Link URL prompt */}
-          <button
-            type="button"
-            onClick={() => {
-              const target = prompt('Nhập liên kết khi nhấn nút (VD: #configuration, #overview, #specs hoặc https://...):', element.link || style.link || '#configuration');
-              if (target !== null) {
-                onUpdateStyle?.({ link: target.trim() });
-              }
-            }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#2997ff] border border-white/15 transition-colors cursor-pointer"
-            title="Cài đặt link hành động khi bấm nút"
-          >
-            <LinkIcon className="w-3 h-3" />
-            <span className="text-[11px]">Link: {style.link || '#'}</span>
-          </button>
+          {/* Link Popover */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowLinkEditor(!showLinkEditor);
+                setLinkInput(style.link || '');
+                setShowAnchorEditor(false);
+                setShowColorPicker(false);
+                setShowBgPicker(false);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#2997ff] border border-white/15 transition-colors cursor-pointer"
+              title="Cài đặt link hành động khi bấm nút"
+            >
+              <LinkIcon className="w-3 h-3" />
+              <span className="text-[11px]">Link: {style.link || '#'}</span>
+            </button>
+
+            {showLinkEditor && (
+              <div
+                className="absolute top-10 left-0 bg-[#1c1c1e] p-3 rounded-2xl border border-white/20 shadow-2xl z-50 flex flex-col gap-2 w-72"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-1.5 border-b border-white/10 pb-2">
+                  <LinkIcon className="w-3.5 h-3.5 text-[#2997ff]" />
+                  <span className="text-[11px] font-semibold text-white">Liên kết khi bấm nút</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="#ten-the-neo hoặc https://..."
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onUpdateStyle?.({ link: linkInput.trim() });
+                        setShowLinkEditor(false);
+                      }
+                    }}
+                    className="flex-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1 text-[10px] text-white outline-none focus:border-[#0071e3] font-mono"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { onUpdateStyle?.({ link: linkInput.trim() }); setShowLinkEditor(false); }}
+                    className="px-2.5 py-1 rounded-lg bg-[#0071e3] hover:bg-[#0077ed] text-white text-[10px] font-semibold cursor-pointer shadow"
+                  >
+                    Lưu
+                  </button>
+                </div>
+
+                {allAnchors.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-[#86868b] font-medium">Thẻ neo có sẵn trên trang:</span>
+                    <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                      {allAnchors.map((a) => (
+                        <button
+                          key={a.anchor}
+                          type="button"
+                          onClick={() => {
+                            setLinkInput(`#${a.anchor}`);
+                            onUpdateStyle?.({ link: `#${a.anchor}` });
+                            setShowLinkEditor(false);
+                          }}
+                          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/10 text-left text-[10px] transition-colors cursor-pointer"
+                        >
+                          <span className="text-emerald-400 font-mono">#{a.anchor}</span>
+                          <span className="text-[#86868b] truncate">{a.label}</span>
+                          {style.link === `#${a.anchor}` && (
+                            <span className="ml-auto text-[#2997ff] text-[10px]">✓</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {style.link && (
+                  <button
+                    type="button"
+                    onClick={() => { onUpdateStyle?.({ link: '' }); setShowLinkEditor(false); }}
+                    className="text-[10px] text-rose-400 hover:text-rose-300 text-left transition-colors cursor-pointer"
+                  >
+                    Xóa liên kết
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Button Theme presets */}
           <div className="flex items-center gap-1">
@@ -682,6 +775,86 @@ export default function CanvaToolbar({
           </div>
         </div>
       )}
+
+      {/* Anchor Tag Section — available for every element type */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setAnchorInput(element.anchor || '');
+            setShowAnchorEditor(!showAnchorEditor);
+            setShowLinkEditor(false);
+            setShowColorPicker(false);
+            setShowBgPicker(false);
+            setShowSlideManager(false);
+          }}
+          className={`flex items-center gap-1 px-2 py-1 rounded-xl border transition-colors cursor-pointer ${
+            element.anchor
+              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+              : 'bg-white/10 border-white/10 text-[#86868b] hover:text-white'
+          }`}
+          title={element.anchor ? `Thẻ neo: #${element.anchor} — Nhấp để chỉnh sửa` : 'Đặt thẻ neo (Anchor)'}
+        >
+          <Tag className="w-3 h-3" />
+          <span className="text-[11px]">{element.anchor ? `#${element.anchor}` : 'Thẻ neo'}</span>
+        </button>
+
+        {showAnchorEditor && (
+          <div
+            className="absolute top-10 right-0 bg-[#1c1c1e] p-3 rounded-2xl border border-white/15 shadow-2xl z-50 flex flex-col gap-2 w-64"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-1.5 border-b border-white/10 pb-2">
+              <Tag className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px] font-semibold text-white">Thẻ neo (Anchor)</span>
+            </div>
+
+            {element.anchor && (
+              <div className="flex items-center gap-2 px-2 py-1.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
+                <span className="text-[11px] text-emerald-400 font-mono">#{element.anchor}</span>
+                <button
+                  type="button"
+                  onClick={handleAnchorClear}
+                  className="ml-auto text-[10px] text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                >
+                  Xóa thẻ
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#86868b] font-mono">#</span>
+              <input
+                type="text"
+                placeholder="ten-the-neo"
+                value={anchorInput}
+                onChange={(e) =>
+                  setAnchorInput(
+                    e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '')
+                  )
+                }
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAnchorSave(); }}
+                className="flex-1 bg-black/60 border border-white/15 rounded-lg px-2 py-1 text-[10px] text-white outline-none focus:border-emerald-500 font-mono"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleAnchorSave}
+                disabled={!anchorInput.trim()}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[10px] font-semibold cursor-pointer shadow transition-colors"
+              >
+                Lưu
+              </button>
+            </div>
+
+            <p className="text-[10px] text-[#86868b] leading-relaxed">
+              Nút bấm dùng thẻ này để cuộn đến vị trí khối. Chỉ dùng chữ thường,
+              không dấu (VD:{' '}
+              <span className="font-mono text-[#2997ff]">hero-section</span>).
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Divider */}
       <div className="w-[1px] h-5 bg-white/20 mx-0.5" />

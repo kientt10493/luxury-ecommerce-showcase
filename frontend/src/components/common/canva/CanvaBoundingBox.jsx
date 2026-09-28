@@ -16,7 +16,9 @@ export default function CanvaBoundingBox({
   onBringForward,
   onSendBackward,
   onDuplicate,
-  onDelete
+  onDelete,
+  onUpdateAnchor,
+  allAnchors = []
 }) {
   const [isEditingText, setIsEditingText] = useState(false);
   const containerRef = useRef(null);
@@ -288,6 +290,8 @@ export default function CanvaBoundingBox({
             onSendBackward={() => onSendBackward?.(id)}
             onDuplicate={() => onDuplicate?.(id)}
             onDelete={() => onDelete?.(id)}
+            onUpdateAnchor={(anchor) => onUpdateAnchor?.(anchor)}
+            allAnchors={allAnchors}
           />
 
           {/* 8 Resize Handles */}
@@ -331,6 +335,16 @@ export default function CanvaBoundingBox({
             )}
           </div>
         </>
+      )}
+
+      {/* Anchor Tag Indicator Badge (visible in edit mode for tagged elements) */}
+      {isEditMode && element.anchor && (
+        <div
+          className="absolute -top-6 left-0 flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-600/80 backdrop-blur-sm rounded-full text-white text-[9px] font-mono z-40 pointer-events-none border border-emerald-500/40 shadow-sm"
+        >
+          <span>#</span>
+          <span>{element.anchor}</span>
+        </div>
       )}
 
       {/* Render Element Content */}

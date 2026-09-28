@@ -27,10 +27,12 @@ export default function EditableText({
     setLocalOffset({ x: offset?.x || 0, y: offset?.y || 0 });
   }, [offset?.x, offset?.y]);
 
-  // Sync contentRef when external value changes
+  // Sync contentRef when external value changes (only when not actively typing)
   useEffect(() => {
     if (contentRef.current && contentRef.current.innerText !== (value || '')) {
-      contentRef.current.innerText = value || '';
+      if (document.activeElement !== contentRef.current) {
+        contentRef.current.innerText = value || '';
+      }
     }
   }, [value]);
 
@@ -106,13 +108,15 @@ export default function EditableText({
   };
 
   const handleElementClick = (e) => {
+    e?.stopPropagation?.();
     if (isEditing && onSelectBlock && id) {
       onSelectBlock({
         id,
         type: 'text',
         label: value || id,
         value,
-        style: blockStyle
+        style: blockStyle,
+        onUpdateText: onChange
       });
     }
   };
@@ -176,6 +180,14 @@ export default function EditableText({
         ref={contentRef}
         contentEditable={true}
         suppressContentEditableWarning={true}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleElementClick(e);
+        }}
+        onFocus={(e) => {
+          e.stopPropagation();
+          handleElementClick(e);
+        }}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={`${className} cursor-text border border-dashed ${
